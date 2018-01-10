@@ -27,8 +27,6 @@ class HIN(object):
         if not isinstance(other, HIN):
             return False
         if self.graph != other.graph:
-            print self.graph
-            print other.graph
             return False
         if self.class_nodes != other.class_nodes:
             return False
@@ -175,55 +173,6 @@ class HIN(object):
         print self.edge_class2id
         for class_, count in class_count.items():
             print class_, count
-
-    def to_multigraph(self, meta_paths):
-        '''
-            generate a new multi-graph
-            each pair of nodes may have multi-edges
-            each edge is correlated to a meta-path
-
-            a meta_path:
-            [(<node_class>, <edge_class>, ... <edge_class>, <node_class>)]
-        '''
-        def get_end_nodes(start, edge_class_ids):
-            currents = {start: 1}
-            for edge_class_id in edge_class_ids:
-                if len(currents) == 0:
-                    break
-
-                nexts = {}
-                for current, count in currents.items():
-                    if edge_class_id not in self.graph[current]:
-                        continue
-                    for next_ in self.graph[current][edge_class_id]:
-                        if next_ not in nexts:
-                            nexts[next_] = count
-                            continue
-                        nexts[next_] += count
-                currents = nexts
-            for end_node, count in currents.items():
-                if end_node == start:
-                    continue
-                yield end_node, count
-
-        g = HIN()
-        for mp in meta_paths:
-            print mp
-            start_class = mp[0]
-            end_class = mp[-1]
-            edge_class_ids = tuple([self.edge_class2id[edge_class]
-                                    for edge_class in mp[1:-1]])
-            meta_path = mp[1:-1]
-            for start_node in self.class_nodes[start_class]:
-                for end_node, weight in get_end_nodes(start_node,
-                                                      edge_class_ids):
-                    g.add_edge(start_node,
-                               start_class,
-                               end_node,
-                               end_class,
-                               meta_path,
-                               weight=weight)
-        return g
 
     def to_homogeneous_network(self):
         aset = set()
