@@ -31,7 +31,7 @@ class TrainingSetGenerator():
                                                      nodes[:w+2],
                                                      prev_edges=prev_edges)
                     prev_edges = ext_edges
-                    gid, role_ids, node_ids, node_classes = matcher.get_graphlet_id_and_role_ids(id2classes, ext_edges)
+                    gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, ext_edges)
 #                   print gid
 
     @staticmethod
@@ -109,14 +109,12 @@ class GraphletMatcher():
                                  for id_, degree
                                  in id2count.items()],
                                 reverse=True)
-        ids, degrees, classes = [], [], []
-        for d, c, id_ in deg_class_ids:
-            ids.append(id_)
-            degrees.append(d)
-            classes.append(c)
-        return tuple(ids), tuple(degrees), tuple(classes)
+        ids = [id_ for _, _, id_ in deg_class_ids]
+        degrees = tuple([d for d, _, _ in deg_class_ids])
+        classes = tuple([c for _, c, _ in deg_class_ids])
+        return ids, degrees, classes
 
-    def get_graphlet_id_and_role_ids(self, id2classes, edges):
+    def get_graphlet(self, id2classes, edges):
         '''
             return graphlet_id, role_ids, node_ids, node_classes
         '''
