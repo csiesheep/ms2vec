@@ -54,7 +54,6 @@ class TrainingSetGenerator():
                     continue
                 nodes.append(walk[i+w*2+2])
                 edges.append(walk[i+w*2+1])
-#               yield nodes, edges
             yield nodes, edges
             i += 2
 
@@ -68,17 +67,17 @@ class GraphletCompleter():
     def complete(g, nodes, edges, prev_edges=None):
         if prev_edges is None:
             ext_edges = set([])
-            for i, from_id in enumerate(nodes):
+            for i, from_id in enumerate(nodes[:-1]):
+                from_tos = g.graph[from_id]
                 for to_id in nodes[i:]:
-                    from_tos = g.graph[from_id]
                     if to_id not in from_tos:
                         continue
                     for edge_class_id in from_tos[to_id]:
                         ext_edges.add((from_id, to_id, edge_class_id))
             return ext_edges
         else:
+            to_id = nodes[-1]
             for i, from_id in enumerate(nodes[:-1]):
-                to_id = nodes[-1]
                 from_tos = g.graph[from_id]
                 if to_id not in from_tos:
                     continue
