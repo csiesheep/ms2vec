@@ -260,7 +260,7 @@ class HIN(object):
 
                 next_node, edge_class_id =random.choice(node_choices[node])
 
-                walk.append(edge_class_id)
+#               walk.append(edge_class_id)
                 walk.append(next_node)
                 node = next_node
                 length -= 1

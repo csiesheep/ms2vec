@@ -20,15 +20,7 @@ class TrainingSetGenerator():
 
         matcher = GraphletMatcher()
         for walk in self.graph.random_walks(count, length, seed=seed):
-            for nodes, edges in TrainingSetGenerator.get_nodes_edges(walk,
-                                                                   window):
-#               id2classes = dict([(id_, graph_id2classes[id_])
-#                                  for id_ in nodes])
-#               ext_edges = GraphletCompleter.complete(self.graph,
-#                                                      nodes,
-#                                                      edges)
-#               gid, role_ids, node_ids, node_classes = matcher.get_graphlet_id_and_role_ids(id2classes, ext_edges)
-
+            for nodes in TrainingSetGenerator.get_nodes(walk, window):
                 prev_edges = None
                 id2classes = {nodes[0]: graph_id2classes[nodes[0]]}
                 for w in range(window):
@@ -37,26 +29,15 @@ class TrainingSetGenerator():
                     id2classes[nodes[w+1]] = graph_id2classes[nodes[w+1]]
                     ext_edges = GraphletCompleter.complete(self.graph,
                                                      nodes[:w+2],
-                                                     edges[:w+1],
                                                      prev_edges=prev_edges)
                     prev_edges = ext_edges
                     gid, role_ids, node_ids, node_classes = matcher.get_graphlet_id_and_role_ids(id2classes, ext_edges)
 #                   print gid
 
     @staticmethod
-    def get_nodes_edges(walk, window):
-        i = 0
-        while i < len(walk):
-            nodes = [walk[i]]
-            edges = []
-            for w in range(window):
-                if i+w*2+1 >= len(walk):
-                    continue
-                nodes.append(walk[i+w*2+2])
-                edges.append(walk[i+w*2+1])
-            yield nodes, edges
-            i += 2
-
+    def get_nodes(walk, window):
+        for i in xrange(len(walk)):
+            yield walk[i:i+window+1]
 
 
 class GraphletCompleter():
@@ -64,7 +45,7 @@ class GraphletCompleter():
     @staticmethod
     #TODO handle multi-graphs that two nodes may have more than one edge.
     #TODO node_class
-    def complete(g, nodes, edges, prev_edges=None):
+    def complete(g, nodes, prev_edges=None):
         if prev_edges is None:
             ext_edges = set([])
             for i, from_id in enumerate(nodes[:-1]):

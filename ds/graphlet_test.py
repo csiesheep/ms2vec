@@ -36,7 +36,6 @@ class GraphCompleterTest(unittest.TestCase):
 
     def testSimple1(self):
         nodes = [0, 1, 2, 3]
-        edges = [0, 0, 0]
 
         expected = set([
             (0, 1, 0),
@@ -45,24 +44,22 @@ class GraphCompleterTest(unittest.TestCase):
             (1, 3, 0),
             (2, 3, 0),
         ])
-        actual = GraphletCompleter.complete(self.g, nodes, edges)
+        actual = GraphletCompleter.complete(self.g, nodes)
         self.assertEquals(expected, actual)
 
     def testSimple2(self):
         nodes = [0, 1, 2]
-        edges = [0, 0]
 
         expected = set([
             (0, 1, 0),
             (0, 2, 1),
             (1, 2, 0),
         ])
-        actual = GraphletCompleter.complete(self.g, nodes, edges)
+        actual = GraphletCompleter.complete(self.g, nodes)
         self.assertEquals(expected, actual)
 
     def testSimple3(self):
         nodes = [3, 2, 1, 0]
-        edges = [0, 0, 0]
 
         expected = set([
             (3, 2, 0),
@@ -71,12 +68,11 @@ class GraphCompleterTest(unittest.TestCase):
             (2, 1, 0),
             (1, 0, 0),
         ])
-        actual = GraphletCompleter.complete(self.g, nodes, edges)
+        actual = GraphletCompleter.complete(self.g, nodes)
         self.assertEquals(expected, actual)
 
     def testSimple4(self):
         nodes = [1, 2, 3, 4]
-        edges = [0, 0, 0]
 
         expected = set([
             (1, 2, 0),
@@ -85,12 +81,11 @@ class GraphCompleterTest(unittest.TestCase):
             (2, 3, 0),
             (3, 4, 0),
         ])
-        actual = GraphletCompleter.complete(self.g, nodes, edges)
+        actual = GraphletCompleter.complete(self.g, nodes)
         self.assertEquals(expected, actual)
 
     def testExtend(self):
         nodes = [0, 1, 2, 3]
-        edges = [0, 0, 0]
         prev_edges = set([
             (0, 1, 0),
             (0, 2, 1),
@@ -106,7 +101,6 @@ class GraphCompleterTest(unittest.TestCase):
         ])
         actual = GraphletCompleter.complete(self.g,
                                             nodes,
-                                            edges,
                                             prev_edges=prev_edges)
         self.assertEquals(expected, actual)
 
