@@ -275,7 +275,6 @@ class HIN(object):
             for to_id in self.graph[from_id]:
                 for edge_id, w in self.graph[from_id][to_id].items():
                     node_choices[from_id] += [(to_id, edge_id)] * int(w*10)
-        print node_choices
 
         for _ in range(count):
             for node in self.graph:
