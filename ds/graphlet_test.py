@@ -10,99 +10,99 @@ from ds.graphlet import GraphletCompleter, GraphletMatcher
 __author__ = "sheep"
 
 
-class GraphCompleterTest(unittest.TestCase):
+#lass GraphCompleterTest(unittest.TestCase):
 
-    def setUp(self):
-        g = network.HIN()
+#   def setUp(self):
+#       g = network.HIN()
 
-        g.add_edge('A', 'U', 'B', 'U', '0')
-        g.add_edge('B', 'U', 'A', 'U', '0')
-        g.add_edge('A', 'U', 'C', 'U', '1')
-        g.add_edge('C', 'U', 'A', 'U', '1')
-        g.add_edge('B', 'U', 'C', 'U', '0')
-        g.add_edge('C', 'U', 'B', 'U', '0')
-        g.add_edge('B', 'U', 'D', 'U', '0')
-        g.add_edge('D', 'U', 'B', 'U', '0')
-        g.add_edge('B', 'U', 'E', 'U', '1')
-        g.add_edge('E', 'U', 'B', 'U', '1')
-        g.add_edge('C', 'U', 'D', 'U', '0')
-        g.add_edge('D', 'U', 'C', 'U', '0')
-        g.add_edge('D', 'U', 'E', 'U', '0')
-        g.add_edge('E', 'U', 'D', 'U', '0')
-        g.add_edge('E', 'U', 'F', 'U', '0')
-        g.add_edge('F', 'U', 'E', 'U', '0')
+#       g.add_edge('A', 'U', 'B', 'U', '0')
+#       g.add_edge('B', 'U', 'A', 'U', '0')
+#       g.add_edge('A', 'U', 'C', 'U', '1')
+#       g.add_edge('C', 'U', 'A', 'U', '1')
+#       g.add_edge('B', 'U', 'C', 'U', '0')
+#       g.add_edge('C', 'U', 'B', 'U', '0')
+#       g.add_edge('B', 'U', 'D', 'U', '0')
+#       g.add_edge('D', 'U', 'B', 'U', '0')
+#       g.add_edge('B', 'U', 'E', 'U', '1')
+#       g.add_edge('E', 'U', 'B', 'U', '1')
+#       g.add_edge('C', 'U', 'D', 'U', '0')
+#       g.add_edge('D', 'U', 'C', 'U', '0')
+#       g.add_edge('D', 'U', 'E', 'U', '0')
+#       g.add_edge('E', 'U', 'D', 'U', '0')
+#       g.add_edge('E', 'U', 'F', 'U', '0')
+#       g.add_edge('F', 'U', 'E', 'U', '0')
 
-        self.g = g
+#       self.g = g
 
-    def testSimple1(self):
-        nodes = [0, 1, 2, 3]
+#   def testSimple1(self):
+#       nodes = [0, 1, 2, 3]
 
-        expected = set([
-            (0, 1, 0),
-            (0, 2, 1),
-            (1, 2, 0),
-            (1, 3, 0),
-            (2, 3, 0),
-        ])
-        actual = GraphletCompleter.complete(self.g, nodes)
-        self.assertEquals(expected, actual)
+#       expected = set([
+#           (0, 1, 0),
+#           (0, 2, 1),
+#           (1, 2, 0),
+#           (1, 3, 0),
+#           (2, 3, 0),
+#       ])
+#       actual = GraphletCompleter.complete(self.g, nodes)
+#       self.assertEquals(expected, actual)
 
-    def testSimple2(self):
-        nodes = [0, 1, 2]
+#   def testSimple2(self):
+#       nodes = [0, 1, 2]
 
-        expected = set([
-            (0, 1, 0),
-            (0, 2, 1),
-            (1, 2, 0),
-        ])
-        actual = GraphletCompleter.complete(self.g, nodes)
-        self.assertEquals(expected, actual)
+#       expected = set([
+#           (0, 1, 0),
+#           (0, 2, 1),
+#           (1, 2, 0),
+#       ])
+#       actual = GraphletCompleter.complete(self.g, nodes)
+#       self.assertEquals(expected, actual)
 
-    def testSimple3(self):
-        nodes = [3, 2, 1, 0]
+#   def testSimple3(self):
+#       nodes = [3, 2, 1, 0]
 
-        expected = set([
-            (3, 2, 0),
-            (3, 1, 0),
-            (2, 0, 1),
-            (2, 1, 0),
-            (1, 0, 0),
-        ])
-        actual = GraphletCompleter.complete(self.g, nodes)
-        self.assertEquals(expected, actual)
+#       expected = set([
+#           (3, 2, 0),
+#           (3, 1, 0),
+#           (2, 0, 1),
+#           (2, 1, 0),
+#           (1, 0, 0),
+#       ])
+#       actual = GraphletCompleter.complete(self.g, nodes)
+#       self.assertEquals(expected, actual)
 
-    def testSimple4(self):
-        nodes = [1, 2, 3, 4]
+#   def testSimple4(self):
+#       nodes = [1, 2, 3, 4]
 
-        expected = set([
-            (1, 2, 0),
-            (1, 3, 0),
-            (1, 4, 1),
-            (2, 3, 0),
-            (3, 4, 0),
-        ])
-        actual = GraphletCompleter.complete(self.g, nodes)
-        self.assertEquals(expected, actual)
+#       expected = set([
+#           (1, 2, 0),
+#           (1, 3, 0),
+#           (1, 4, 1),
+#           (2, 3, 0),
+#           (3, 4, 0),
+#       ])
+#       actual = GraphletCompleter.complete(self.g, nodes)
+#       self.assertEquals(expected, actual)
 
-    def testExtend(self):
-        nodes = [0, 1, 2, 3]
-        prev_edges = set([
-            (0, 1, 0),
-            (0, 2, 1),
-            (1, 2, 0),
-        ])
+#   def testExtend(self):
+#       nodes = [0, 1, 2, 3]
+#       prev_edges = set([
+#           (0, 1, 0),
+#           (0, 2, 1),
+#           (1, 2, 0),
+#       ])
 
-        expected = set([
-            (0, 1, 0),
-            (0, 2, 1),
-            (1, 2, 0),
-            (1, 3, 0),
-            (2, 3, 0),
-        ])
-        actual = GraphletCompleter.complete(self.g,
-                                            nodes,
-                                            prev_edges=prev_edges)
-        self.assertEquals(expected, actual)
+#       expected = set([
+#           (0, 1, 0),
+#           (0, 2, 1),
+#           (1, 2, 0),
+#           (1, 3, 0),
+#           (2, 3, 0),
+#       ])
+#       actual = GraphletCompleter.complete(self.g,
+#                                           nodes,
+#                                           prev_edges=prev_edges)
+#       self.assertEquals(expected, actual)
 
 
 class GraphletMatcherTest(unittest.TestCase):
@@ -445,3 +445,30 @@ class GraphletMatcherTest(unittest.TestCase):
         self.assertEquals(expected_ids, ids)
         self.assertEquals(expected_degrees, degrees)
         self.assertEquals(expected_classes, classes)
+
+    def testCompleteAndCountDegrees(self):
+        '''
+                   / 2 \
+            0 -- 1   |  4 -- 5
+                   \ 3 /
+
+            id2classes: 0,1,3,4 are 100; 2,5 are 200
+        '''
+        g = network.HIN()
+        g.add_edge(0, 'U', 1, 'U', 0)
+        g.add_edge(1, 'U', 2, 'B', 1)
+        g.add_edge(1, 'U', 3, 'U', 0)
+        g.add_edge(2, 'B', 3, 'U', 1)
+        g.add_edge(2, 'B', 4, 'U', 1)
+        g.add_edge(3, 'U', 4, 'U', 0)
+        g.add_edge(4, 'U', 5, 'B', 1)
+
+        nodes = [0, 1, 2, 3]
+
+        expected = [
+            {0:1, 1:1},
+            {0:1, 1:2, 2:1},
+            {0:1, 1:3, 2:2, 3:2},
+        ]
+        for i, a in enumerate(GraphletMatcher.complete_and_count_degrees(g, nodes)):
+            self.assertEquals(expected[i], a)

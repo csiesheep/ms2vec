@@ -21,17 +21,15 @@ class TrainingSetGenerator():
         matcher = GraphletMatcher()
         for walk in self.graph.random_walks(count, length, seed=seed):
             for nodes in TrainingSetGenerator.get_nodes(walk, window):
-                prev_edges = None
+
+
+                if len(nodes) == 1:
+                    continue
                 id2classes = {nodes[0]: graph_id2classes[nodes[0]]}
-                for w in range(window):
-                    if w+2 > len(nodes):
-                        break
-                    id2classes[nodes[w+1]] = graph_id2classes[nodes[w+1]]
-                    ext_edges = GraphletCompleter.complete(self.graph,
-                                                     nodes[:w+2],
-                                                     prev_edges=prev_edges)
-                    prev_edges = ext_edges
-                    gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, ext_edges)
+                for i, id2degrees in enumerate(GraphletMatcher.complete_and_count_degrees(self.graph,
+                                                             nodes)):
+                    id2classes[nodes[i+1]] = graph_id2classes[nodes[i+1]]
+                    gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, id2degrees)
 #                   print gid
 
     @staticmethod
@@ -40,36 +38,36 @@ class TrainingSetGenerator():
             yield walk[i:i+window+1]
 
 
-class GraphletCompleter():
+#lass GraphletCompleter():
 
-    @staticmethod
-    #TODO handle multi-graphs that two nodes may have more than one edge.
-    #TODO node_class
-    def complete(g, nodes, prev_edges=None):
-        if prev_edges is None:
-            ext_edges = set([])
-            for i, from_id in enumerate(nodes[:-1]):
-                from_tos = g.graph[from_id]
-                for to_id in nodes[i:]:
-                    if to_id not in from_tos:
-                        continue
-                    for edge_class_id in from_tos[to_id]:
-                        ext_edges.add((from_id, to_id, edge_class_id))
-            return ext_edges
-        else:
-            to_id = nodes[-1]
-            for i, from_id in enumerate(nodes[:-1]):
-                from_tos = g.graph[from_id]
-                if to_id not in from_tos:
-                    continue
-                for edge_class_id in from_tos[to_id]:
-                    prev_edges.add((from_id, to_id, edge_class_id))
-            return prev_edges
+#   @staticmethod
+#   #TODO handle multi-graphs that two nodes may have more than one edge.
+#   #TODO node_class
+#   def complete(g, nodes, prev_edges=None):
+#       if prev_edges is None:
+#           ext_edges = set([])
+#           for i, from_id in enumerate(nodes[:-1]):
+#               from_tos = g.graph[from_id]
+#               for to_id in nodes[i:]:
+#                   if to_id not in from_tos:
+#                       continue
+#                   for edge_class_id in from_tos[to_id]:
+#                       ext_edges.add((from_id, to_id, edge_class_id))
+#           return ext_edges
+#       else:
+#           to_id = nodes[-1]
+#           for i, from_id in enumerate(nodes[:-1]):
+#               from_tos = g.graph[from_id]
+#               if to_id not in from_tos:
+#                   continue
+#               for edge_class_id in from_tos[to_id]:
+#                   prev_edges.add((from_id, to_id, edge_class_id))
+#           return prev_edges
 
-    @staticmethod
-    #TODO implement
-    def incremental_complete():
-        pass
+#   @staticmethod
+#   #TODO implement
+#   def incremental_complete():
+#       pass
 
 
 #FIXME currently, only for less than or equal to 4 nodes, and indirected
@@ -100,26 +98,40 @@ class GraphletMatcher():
         return True
 
     @staticmethod
-    def to_code(id2class, edges):
-        id2count = dict([(id_, 0) for id_ in id2class])
-        for edge in edges:
-            id2count[edge[0]] += 1
-            id2count[edge[1]] += 1
+    def complete_and_count_degrees(g, nodes):
+        id2count = {nodes[0]: 1, nodes[1]: 1}
+        yield id2count
+
+        i = 2
+        while i < len(nodes):
+            to_id = nodes[i]
+            id2count[to_id] = 0
+            for from_id in nodes[:i]:
+                from_tos = g.graph[from_id]
+                if to_id not in from_tos:
+                    continue
+                id2count[from_id] += 1
+                id2count[to_id] += 1
+            i += 1
+            yield id2count
+
+    @staticmethod
+    def to_code(id2class, id2degrees):
         deg_class_ids = sorted([(degree, id2class[id_], id_)
                                  for id_, degree
-                                 in id2count.items()],
+                                 in id2degrees.items()],
                                 reverse=True)
         ids = [id_ for _, _, id_ in deg_class_ids]
         degrees = tuple([d for d, _, _ in deg_class_ids])
         classes = tuple([c for _, c, _ in deg_class_ids])
         return ids, degrees, classes
 
-    def get_graphlet(self, id2classes, edges):
+    def get_graphlet(self, id2classes, id2degrees):
         '''
             return graphlet_id, role_ids, node_ids, node_classes
         '''
         ids, degrees, classes = GraphletMatcher.to_code(id2classes,
-                                                        edges)
+                                                        id2degrees)
         #TODO cycles in the graphlet
         if degrees not in self.template:
             return None, None, None, None
