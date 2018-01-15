@@ -88,6 +88,28 @@ class GraphCompleterTest(unittest.TestCase):
         actual = GraphletCompleter.complete(self.g, nodes, edges)
         self.assertEquals(expected, actual)
 
+    def testExtend(self):
+        nodes = [0, 1, 2, 3]
+        edges = [0, 0, 0]
+        prev_edges = set([
+            (0, 1, 0),
+            (0, 2, 1),
+            (1, 2, 0),
+        ])
+
+        expected = set([
+            (0, 1, 0),
+            (0, 2, 1),
+            (1, 2, 0),
+            (1, 3, 0),
+            (2, 3, 0),
+        ])
+        actual = GraphletCompleter.complete(self.g,
+                                            nodes,
+                                            edges,
+                                            prev_edges=prev_edges)
+        self.assertEquals(expected, actual)
+
 
 class GraphletMatcherTest(unittest.TestCase):
 
