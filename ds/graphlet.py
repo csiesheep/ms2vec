@@ -21,20 +21,16 @@ class TrainingSetGenerator():
         matcher = GraphletMatcher()
         for walk in self.graph.random_walks(count, length, seed=seed):
             for nodes in TrainingSetGenerator.get_nodes(walk, window):
+                for id2degrees in GraphletMatcher.complete_and_count_degrees(self.graph, nodes):
 
-
-                if len(nodes) == 1:
-                    continue
-                id2classes = {nodes[0]: graph_id2classes[nodes[0]]}
-                for i, id2degrees in enumerate(GraphletMatcher.complete_and_count_degrees(self.graph,
-                                                             nodes)):
-                    id2classes[nodes[i+1]] = graph_id2classes[nodes[i+1]]
-                    gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, id2degrees)
+                    gid, role_ids, node_ids, node_classes = matcher.get_graphlet(graph_id2classes, id2degrees)
+#                   gid, role_ids, deg_class_ids = matcher.get_graphlet(id2classes, id2degrees)
 #                   print gid
+#                   yield gid, role_ids, node_ids, node_classes
 
     @staticmethod
     def get_nodes(walk, window):
-        for i in xrange(len(walk)):
+        for i in xrange(len(walk)-1):
             yield walk[i:i+window+1]
 
 
@@ -105,42 +101,38 @@ class GraphletMatcher():
         i = 2
         while i < len(nodes):
             to_id = nodes[i]
-            id2count[to_id] = 0
-            for from_id in nodes[:i]:
-                from_tos = g.graph[from_id]
-                if to_id not in from_tos:
-                    continue
-                id2count[from_id] += 1
-                id2count[to_id] += 1
+            if to_id in id2count:
+                break
+
+            id2count[to_id] = 1
+            id2count[nodes[i-1]] += 1
+            for from_id in nodes[:i-1]:
+                if to_id in g.graph[from_id]:
+                    id2count[from_id] += 1
+                    id2count[to_id] += 1
             i += 1
             yield id2count
-
-    @staticmethod
-    def to_code(id2class, id2degrees):
-        deg_class_ids = sorted([(degree, id2class[id_], id_)
-                                 for id_, degree
-                                 in id2degrees.items()],
-                                reverse=True)
-        ids = [id_ for _, _, id_ in deg_class_ids]
-        degrees = tuple([d for d, _, _ in deg_class_ids])
-        classes = tuple([c for _, c, _ in deg_class_ids])
-        return ids, degrees, classes
 
     def get_graphlet(self, id2classes, id2degrees):
         '''
             return graphlet_id, role_ids, node_ids, node_classes
         '''
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes,
-                                                        id2degrees)
-        #TODO cycles in the graphlet
+        deg_class_ids = zip(*sorted([(degree, id2classes[id_], id_)
+                                     for id_, degree
+                                     in id2degrees.items()],
+                                     reverse=True))
+        degrees = deg_class_ids[0]
+
         if degrees not in self.template:
             return None, None, None, None
 
+        classes = deg_class_ids[1]
         key = (degrees, classes)
         if key not in self.graphlets:
             roles = [self.rid_offset+rid
                      for rid in self.template[degrees]]
             self.graphlets[key] = (len(self.graphlets), roles)
-            self.rid_offset += self.template[degrees][-1]+1
+            self.rid_offset = roles[-1]+1
         gid, role_ids = self.graphlets[key]
-        return gid, role_ids, ids, classes
+
+        return gid, role_ids, deg_class_ids[2], classes

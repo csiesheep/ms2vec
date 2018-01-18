@@ -276,8 +276,13 @@ class HIN(object):
                 for edge_id, w in self.graph[from_id][to_id].items():
                     node_choices[from_id] += [(to_id, edge_id)] * int(w*10)
 
-        for _ in range(count):
+        for c in range(count):
+#           print c
+            n = 0
             for node in self.graph:
+                n += 1
+#               if n % 100 == 0:
+#                   print n
                 walk = a_random_walk(node, length)
                 if len(walk) != 1:
                     yield walk
