@@ -18,15 +18,17 @@ class TrainingSetGenerator():
             for id_ in ids:
                 graph_id2classes[id_] = class_
 
+        c = 0
         matcher = GraphletMatcher()
         for walk in self.graph.random_walks(count, length, seed=seed):
             for nodes in TrainingSetGenerator.get_nodes(walk, window):
                 for id2degrees in GraphletMatcher.complete_and_count_degrees(self.graph, nodes):
 
                     gid, role_ids, node_ids, node_classes = matcher.get_graphlet(graph_id2classes, id2degrees)
-#                   gid, role_ids, deg_class_ids = matcher.get_graphlet(id2classes, id2degrees)
-#                   print gid
+                    print gid
+                    c += 1
 #                   yield gid, role_ids, node_ids, node_classes
+        print c
 
     @staticmethod
     def get_nodes(walk, window):
@@ -72,14 +74,13 @@ class GraphletMatcher():
     def __init__(self):
         self.template = { #{(degrees): (roles)}
             (1, 1): (0, 0),
-            (2, 1, 1): (0, 1, 1),
+            (1, 1, 2): (0, 0, 1),
             (2, 2, 2): (0, 0, 0),
-            (2, 2, 1, 1): (0, 0, 1, 1),
-            (3, 1, 1, 1): (0, 1, 1, 1),
+            (1, 1, 2, 2): (0, 0, 1, 1),
+            (1, 1, 1, 3): (0, 0, 0, 1),
             (2, 2, 2, 2): (0, 0, 0, 0),
-            (3, 2, 2, 1): (0, 1, 1, 2),
-            (3, 2, 2, 1): (0, 1, 1, 2),
-            (3, 3, 2, 2): (0, 0, 1, 1),
+            (1, 2, 2, 3): (0, 1, 1, 2),
+            (2, 2, 3, 3): (0, 0, 1, 1),
             (3, 3, 3, 3): (0, 0, 0, 0),
         }
         self.graphlets = {}
@@ -119,8 +120,7 @@ class GraphletMatcher():
         '''
         deg_class_ids = zip(*sorted([(degree, id2classes[id_], id_)
                                      for id_, degree
-                                     in id2degrees.items()],
-                                     reverse=True))
+                                     in id2degrees.items()]))
         degrees = deg_class_ids[0]
 
         if degrees not in self.template:
