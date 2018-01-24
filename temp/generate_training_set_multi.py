@@ -15,7 +15,7 @@ def main(graph_fname):
     '''\
     %prog [options]
     '''
-    walk_num = 10
+    walk_num = 1
     walk_length = 1280
     window = 3
     batch_size = 100
@@ -27,7 +27,7 @@ def main(graph_fname):
                                                        walk_length,
                                                        window,
                                                        batch_size,
-                                                       num_processes=4):
+                                                       num_processes=1):
 #       c += len(dataset)
 #       if c % 1000000 == 0:
 #           print c

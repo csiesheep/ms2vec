@@ -160,6 +160,23 @@ class HIN(object):
         union = from_neighbors.union(to_neighbors)
         return float(len(intersection))/len(union)
 
+    def update_ids(self, id2new):
+        graph = {}
+        for from_ in self.graph:
+            graph[id2new[from_]] = {}
+            for to_, adict in self.graph[from_].items():
+                graph[id2new[from_]][id2new[to_]] = adict
+        self.graph = graph
+
+        for class_ in self.class_nodes:
+            aset = set()
+            for id_ in self.class_nodes[class_]:
+                aset.add(id2new[id_])
+            self.class_nodes[class_] = aset
+
+        for node in self.node2id:
+            self.node2id[node] = id2new[self.node2id[node]]
+
     def print_statistics(self):
         for c, nodes in self.class_nodes.items():
             print c, len(nodes)

@@ -1,11 +1,12 @@
 #!/usr/bin/python
 # -*- encoding: utf8 -*-
 
-import sys
 import collections
 import cPickle
 from multiprocessing import Process, Pool, Value, Array, Queue, Pipe
 import os
+import random
+import sys
 import time
 import tempfile
 
@@ -15,9 +16,21 @@ __author__ = 'sheep'
 
 graph = None
 
-def generate_training_set_pipe(g, count, length, window, batch_size,
-                                                         seed=None,
-                                                         num_processes=1):
+
+def generate_training_set(g, count, length, window, batch_size,
+                                                    seed=None,
+                                                    num_processes=3):
+    for dataset in generate_graphlet_pipe(g, count,
+                                             length,
+                                             window,
+                                             batch_size,
+                                             num_processes=num_processes):
+        yield dataset
+
+
+def generate_graphlet_pipe(g, count, length, window, batch_size,
+                                                     seed=None,
+                                                     num_processes=3):
     global graph
     graph = g
 
@@ -58,8 +71,14 @@ def generate_training_set_pipe(g, count, length, window, batch_size,
                 continue
 
             i = 0
-            while i < len(dataset):
-                yield dataset[i:i+batch_size]
+            while i < len(dataset[0]):
+                yield (dataset[0][i:i+batch_size],
+                       dataset[1][i:i+batch_size],
+                       dataset[2][i:i+batch_size],
+                       dataset[3][i:i+batch_size],
+                       dataset[4][i:i+batch_size],
+                       dataset[5][i:i+batch_size],
+                       dataset[6][i:i+batch_size])
                 i += batch_size
 
     for p in processes:
@@ -89,24 +108,44 @@ def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
 
     global graph
 
-    max_size = 500
-    size = 0
-    buffered = [0] * max_size
-    index = 0
+#   max_size = 500
 
+    k_dataset = {}
+    for k in range(2, window+2):
+        k_dataset[k] = [[], [], [], [], [], [], []]
+
+    max_size = 500
     matcher = GraphletMatcher()
     for walk in graph.random_walks(count, length, seed=seed):
         for id2degrees in complete_and_count_degrees(window,walk):
             data = matcher.get_graphlet(id2classes, id2degrees)
-            buffered[index] = data
-            index += 1
+            if data[0] is None:
+                continue
 
-            if index == max_size:
-                pipe.send(buffered)
-                buffered = [0] * max_size
-                index = 0
+            k = len(data[1])
 
-    pipe.send(buffered)
+            i = random.randint(0, k-1)
+            xs = data[2][0:i] + data[2][i+1:]
+            xrs = data[1][0:i] + data[1][i+1:]
+            xcs = data[3][0:i] + data[3][i+1:]
+            y = [data[2][i]]
+            yr = data[1][i]
+            yc = data[3][i]
+
+            k_dataset[k][0].append(data[0])
+            k_dataset[k][1].append(xs)
+            k_dataset[k][2].append(xrs)
+            k_dataset[k][3].append(xcs)
+            k_dataset[k][4].append(y)
+            k_dataset[k][5].append(yr)
+            k_dataset[k][6].append(yc)
+            if len(k_dataset[k][0]) >= max_size:
+                pipe.send(k_dataset[k])
+                k_dataset[k] = [[], [], [], [], [], [], []]
+
+    for v in k_dataset.values():
+        if len(v[0]) != 0:
+            pipe.send(v)
     pipe.send('DONE')
 
 

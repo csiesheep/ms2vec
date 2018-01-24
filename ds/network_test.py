@@ -138,6 +138,94 @@ class HINTest(unittest.TestCase):
 
         self.assertEquals(expected, g)
 
+    def testUpdateIds(self):
+        id2new = {0:3, 1:4, 2:5, 3:0, 4:1, 5:2}
+        expected = network.HIN()
+        expected.node2id = {
+            'P1': 3,
+            'P2': 4,
+            'P3': 5,
+            'I1': 0,
+            'I2': 1,
+            'I3': 2,
+        }
+        expected.graph = {
+            3: {
+                4: {0: 1},
+                5: {0: 1},
+                0: {1: 1},
+                1: {1: 1},
+                2: {1: 1},
+            },
+            4: {
+                3: {2: 1},
+                5: {0: 1},
+                0: {1: 1},
+                1: {1: 1},
+            },
+            5: {
+                3: {2: 1},
+                4: {2: 1},
+                2: {1: 1},
+            },
+            0 : {
+                3: {3: 1},
+                4: {3: 1},
+            },
+            1 : {
+                3: {3: 1},
+                4: {3: 1},
+            },
+            2 : {
+                3: {3: 1},
+                5: {3: 1},
+            },
+        }
+        expected.edge_class2id = {
+            'P-P': 0,
+            'P-I': 1,
+            '-P-P': 2,
+            'I-P': 3,
+        }
+        expected.class_nodes = {
+            'P': set([3, 4, 5]),
+            'I': set([0, 1, 2]),
+        }
+        expected.edge_class_id_available_node_class = {
+            0: ('P', 'P'),
+            1: ('P', 'I'),
+            2: ('P', 'P'),
+            3: ('I', 'P'),
+        }
+
+        g = network.HIN()
+        g.add_edge('P1', 'P', 'P2', 'P', 'P-P')
+        g.add_edge('P1', 'P', 'P3', 'P', 'P-P')
+        g.add_edge('P1', 'P', 'I1', 'I', 'P-I')
+        g.add_edge('P1', 'P', 'I2', 'I', 'P-I')
+        g.add_edge('P1', 'P', 'I3', 'I', 'P-I')
+
+        g.add_edge('P2', 'P', 'P1', 'P', '-P-P')
+        g.add_edge('P2', 'P', 'P3', 'P', 'P-P')
+        g.add_edge('P2', 'P', 'I1', 'I', 'P-I')
+        g.add_edge('P2', 'P', 'I2', 'I', 'P-I')
+
+        g.add_edge('P3', 'P', 'P1', 'P', '-P-P')
+        g.add_edge('P3', 'P', 'P2', 'P', '-P-P')
+        g.add_edge('P3', 'P', 'I3', 'I', 'P-I')
+
+        g.add_edge('I1', 'I', 'P1', 'P', 'I-P')
+        g.add_edge('I1', 'I', 'P2', 'P', 'I-P')
+
+        g.add_edge('I2', 'I', 'P1', 'P', 'I-P')
+        g.add_edge('I2', 'I', 'P2', 'P', 'I-P')
+
+        g.add_edge('I3', 'I', 'P1', 'P', 'I-P')
+        g.add_edge('I3', 'I', 'P3', 'P', 'I-P')
+
+        g.update_ids(id2new)
+        self.assertEquals(expected, g)
+
 
 class ToHomogeneousNetwork(unittest.TestCase):
 
