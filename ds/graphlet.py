@@ -187,7 +187,7 @@ class GraphletMatcher():
         return True
 
 
-    def get_graphlet(self, id2classes, id2degrees):
+    def get_graphlet(self, id2classes, id2degrees, add_new=True):
         '''
             return graphlet_id, role_ids, node_ids, node_classes
         '''
@@ -202,6 +202,8 @@ class GraphletMatcher():
         try:
             gid, role_ids = self.graphlets[key]
         except KeyError:
+            if add_new is False:
+                return None, None, None, None
             role_ids = [self.rid_offset+rid
                         for rid in self.template[degrees]]
             gid = len(self.graphlets)

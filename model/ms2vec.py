@@ -56,14 +56,18 @@ class MP2Vec():
         global graph
         graph = g
 
-        #FIXME matcher
-        global matcher
-        matcher = graphlet.GraphletMatcher()
-
         id2classes = {}
         for class_, ids in graph.class_nodes.items():
             for id_ in ids:
                 id2classes[id_] = class_
+
+        #FIXME matcher
+        global matcher
+        matcher = graphlet.GraphletMatcher()
+        for walk in graph.random_walks(1, 200, seed=seed):
+            for id2degrees in complete_and_count_degrees(self.window,walk):
+                matcher.get_graphlet(id2classes, id2degrees)
+        print len(matcher.graphlets)
 
         self.id2node = {}
         for node, id_ in graph.node2id.items():
@@ -217,39 +221,31 @@ class NegSampler(object):
         self.index = new_index
         return samples
 
+def complete_and_count_degrees(window, walk):
+    for i in xrange(len(walk)-1):
+        nodes = walk[i:i+window+1]
+        id2count = {nodes[0]: 1, nodes[1]: 1}
+        yield id2count
+
+        i = 2
+        while i < len(nodes):
+            to_id = nodes[i]
+            if to_id in id2count:
+                break
+
+            id2count[to_id] = 1
+            id2count[nodes[i-1]] += 1
+            for from_id in nodes[:i-1]:
+                if to_id in graph.graph[from_id]:
+                    id2count[from_id] += 1
+                    id2count[to_id] += 1
+            i += 1
+            yield id2count
+
 def train_process(pid, Wx, Wr, walk_num, walk_length,
                   neg_sampler, id2classes, neg, starting_alpha,
                   window, counter,
                   is_no_circle_path, seed, training_size):
-
-    def get_grad2(wxr, reg_wyr, grad_wyr):
-        reg_wxr_reg_wyr = np.zeros(dim)
-        grad_wxr_reg_wyr = np.zeros(dim)
-        reg_wxr_grad_wyr = np.zeros(dim)
-        for i, vxr in enumerate(wxr):
-            if vxr > 0:
-                reg_wxr_reg_wyr[i] = reg_wyr[i]
-            if vxr > 0:
-                reg_wxr_grad_wyr[i] = grad_wyr[i]
-            if reg_wyr[i] > 0 and -6 <= vxr <= 6:
-                s = 1 / (1 + math.exp(-vxr))
-                grad_wxr_reg_wyr[i] = s * (1-s)
-        return reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr
-
-    def get_grad(wxr, wyr):
-        reg_wxr_reg_wyr = np.zeros(dim)
-        grad_wxr_reg_wyr = np.zeros(dim)
-        reg_wxr_grad_wyr = np.zeros(dim)
-        for i, (vxr, vyr) in enumerate(zip(wxr, wyr)):
-            if vxr > 0 and vyr > 0:
-                reg_wxr_reg_wyr[i] = 1
-            if vxr > 0 and -6 <= vyr <= 6:
-                s = 1 / (1 + math.exp(-vyr))
-                reg_wxr_grad_wyr[i] = s * (1-s)
-            if vyr > 0 and -6 <= vxr <= 6:
-                s = 1 / (1 + math.exp(-vxr))
-                grad_wxr_reg_wyr[i] = s * (1-s)
-        return reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr
 
     def get_wp2_wp3(wp):
         wp2 = np.zeros(dim)
@@ -268,33 +264,21 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 #               wp3[i] = dev_sigmoid(v)
         return wp2, wp3
 
-    def complete_and_count_degrees(window, walk):
-        for i in xrange(len(walk)-1):
-            nodes = walk[i:i+window+1]
-            id2count = {nodes[0]: 1, nodes[1]: 1}
-            yield id2count
-
-            i = 2
-            while i < len(nodes):
-                to_id = nodes[i]
-                if to_id in id2count:
-                    break
-
-                id2count[to_id] = 1
-                id2count[nodes[i-1]] += 1
-                for from_id in nodes[:i-1]:
-                    if to_id in graph.graph[from_id]:
-                        id2count[from_id] += 1
-                        id2count[to_id] += 1
-                i += 1
-                yield id2count
-
-    def to_x_y(data):
+    def to_xs_y(data):
         i = random.randint(0, len(data[1])-1)
         xs = data[2][0:i] + data[2][i+1:]
         xrs = data[1][0:i] + data[1][i+1:]
         pos_y = data[2][i]
         yr = data[1][i]
+        return xs, xrs, pos_y, yr
+
+    def to_x_y(data):
+        ix = random.randint(0, len(data[1])-1)
+        iy = (ix + 1) % len(data[2])
+        xs = [data[2][ix]]
+        xrs = [data[1][ix]]
+        pos_y = data[2][iy]
+        yr = data[1][iy]
         return xs, xrs, pos_y, yr
 
     np.seterr(invalid='raise', over ='raise', under='raise')
@@ -328,19 +312,21 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
     for walk in graph.random_walks(walk_num, walk_length, seed=seed):
 #       print walk
         for id2degrees in complete_and_count_degrees(window, walk):
-            data = matcher.get_graphlet(id2classes, id2degrees)
+            data = matcher.get_graphlet(id2classes, id2degrees, add_new=False)
             if data[0] is None:
                 continue
 
 #           print data[2], data[1], matcher.graphlets, matcher.rid_offset
 
-            xs, xrs, pos_y, yr = to_x_y(data)
+            xs, xrs, pos_y, yr = to_xs_y(data)
+#           xs, xrs, pos_y, yr = to_x_y(data)
 
             neg_ys = neg_sampler.sample(neg)
             wyr = Wr[yr]
             wyr2, wyr3 = get_wp2_wp3(wyr)
 
 #           print xs, xrs, pos_y, yr, neg_ys
+#           raw_input()
 
             #SGD learning
             #TODO speed up
@@ -351,14 +337,11 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
                     wxr = wyr
                     wxr2 = wyr2
                     wxr3 = wyr3
+                    reg_wxr_reg_wyr = wxr2
                 else:
                     wxr = Wr[xrs[i]]
                     wxr2, wxr3 = get_wp2_wp3(wxr)
-
-#               wyr = Wr[yr]
-#               wxr = Wr[xrs[i]]
-#               reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr = get_grad(wxr, wyr)
-#               reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr = get_grad2(wxr, wyr2, wyr3)
+                    reg_wxr_reg_wyr = wxr2 * wyr2
 
                 for y, label in ([(pos_y, 1)] + [(y, 0) for y in neg_ys]):
                     #TODO check
@@ -369,7 +352,6 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 
                     wy = Wx[y]
 
-                    reg_wxr_reg_wyr = wxr2 * wyr2
                     wxy = wx * wy
 
 #                   p = sigmoid(dot)
@@ -387,10 +369,10 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 
                     wxy = g * wxy
                     exr = wyr2 * wxr3 * wxy
-                    eyr = wxr2 * wyr3 * wxy
-#                   exr = grad_wxr_reg_wyr * wxy
-#                   eyr = reg_wxr_grad_wyr * wxy
-
+                    if xrs[i] == yr:
+                        eyr = exr
+                    else:
+                        eyr = wxr2 * wyr3 * wxy
                     g_reg_wxr_reg_wyr = g * reg_wxr_reg_wyr
                     ex = g_reg_wxr_reg_wyr * wy
 #                   print 'ex', ex
@@ -398,10 +380,11 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 #                   print 'exr', exr
 #                   print 'eyr', eyr
                     wy += g_reg_wxr_reg_wyr * wx
-
-                    wxr += exr
-                    wyr += eyr
-
+                    if xrs[i] == yr:
+                        wxr += 2 * exr
+                    else:
+                        wxr += exr
+                        wyr += eyr
                     wx += ex
 #                   print 'wx', wx
 #                   print 'wy', wy
