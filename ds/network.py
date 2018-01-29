@@ -297,7 +297,7 @@ class HIN(object):
 #           print c
             n = 0
             for node in self.graph:
-#               n += 1
+                n += 1
 #               if n % 100 == 0:
 #                   print n
                 walk = a_random_walk(node, length)

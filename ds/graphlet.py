@@ -99,10 +99,10 @@ def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
 
                 id2count[to_id] = 1
                 id2count[nodes[i-1]] += 1
-                for from_id in nodes[:i-1]:
-                    if to_id in graph.graph[from_id]:
-                        id2count[from_id] += 1
-                        id2count[to_id] += 1
+#               for from_id in nodes[:i-1]:
+#                   if to_id in graph.graph[from_id]:
+#                       id2count[from_id] += 1
+#                       id2count[to_id] += 1
                 i += 1
                 yield id2count
 
@@ -117,6 +117,8 @@ def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
     max_size = 500
     matcher = GraphletMatcher()
     for walk in graph.random_walks(count, length, seed=seed):
+
+#       for data in get_metapaths(window, walk):
         for id2degrees in complete_and_count_degrees(window,walk):
             data = matcher.get_graphlet(id2classes, id2degrees)
             if data[0] is None:
@@ -125,6 +127,7 @@ def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
             k = len(data[1])
 
             i = random.randint(0, k-1)
+            i = 0
             xs = data[2][0:i] + data[2][i+1:]
             xrs = data[1][0:i] + data[1][i+1:]
             xcs = data[3][0:i] + data[3][i+1:]
@@ -148,6 +151,14 @@ def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
             pipe.send(v)
     pipe.send('DONE')
 
+def get_metapaths(window, walk):
+    for i in range(len(walk)-1):
+        for j in range(window):
+            gid = j
+            xs = walk[i:i+j+2]
+            rs = [0] * len(xs)
+            classes = [0] * len(xs)
+            yield gid, rs, xs, classes
 
 #FIXME currently, only for less than or equal to 4 nodes, and indirected
 class GraphletMatcher():
