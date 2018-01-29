@@ -222,6 +222,35 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
                   window, counter,
                   is_no_circle_path, seed, training_size):
 
+    def get_grad2(wxr, reg_wyr, grad_wyr):
+        reg_wxr_reg_wyr = np.zeros(dim)
+        grad_wxr_reg_wyr = np.zeros(dim)
+        reg_wxr_grad_wyr = np.zeros(dim)
+        for i, vxr in enumerate(wxr):
+            if vxr > 0:
+                reg_wxr_reg_wyr[i] = reg_wyr[i]
+            if vxr > 0:
+                reg_wxr_grad_wyr[i] = grad_wyr[i]
+            if reg_wyr[i] > 0 and -6 <= vxr <= 6:
+                s = 1 / (1 + math.exp(-vxr))
+                grad_wxr_reg_wyr[i] = s * (1-s)
+        return reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr
+
+    def get_grad(wxr, wyr):
+        reg_wxr_reg_wyr = np.zeros(dim)
+        grad_wxr_reg_wyr = np.zeros(dim)
+        reg_wxr_grad_wyr = np.zeros(dim)
+        for i, (vxr, vyr) in enumerate(zip(wxr, wyr)):
+            if vxr > 0 and vyr > 0:
+                reg_wxr_reg_wyr[i] = 1
+            if vxr > 0 and -6 <= vyr <= 6:
+                s = 1 / (1 + math.exp(-vyr))
+                reg_wxr_grad_wyr[i] = s * (1-s)
+            if vyr > 0 and -6 <= vxr <= 6:
+                s = 1 / (1 + math.exp(-vxr))
+                grad_wxr_reg_wyr[i] = s * (1-s)
+        return reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr
+
     def get_wp2_wp3(wp):
         wp2 = np.zeros(dim)
         wp3 = np.zeros(dim)
@@ -284,12 +313,12 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
     alpha = starting_alpha
     data_count = 0
 
-    exp_table_size = 1000
-    max_exp = 6
-    exp_table = []
-    for i in range(exp_table_size):
-        tmp = math.exp((float(i)/exp_table_size * 2 - 1) * 6)
-        exp_table.append(tmp / (tmp+1))
+#   exp_table_size = 1000
+#   max_exp = 6
+#   exp_table = []
+#   for i in range(exp_table_size):
+#       tmp = math.exp((float(i)/exp_table_size * 2 - 1) * 6)
+#       exp_table.append(tmp / (tmp+1))
 #   for f in range(-10, 10):
 #       f = float(f)/10
 #       print f, sigmoid(f), exp_table[int((f + max_exp)*(exp_table_size/max_exp/2))]
@@ -306,11 +335,6 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 #           print data[2], data[1], matcher.graphlets, matcher.rid_offset
 
             xs, xrs, pos_y, yr = to_x_y(data)
-#           i = random.randint(0, len(data[1])-1)
-#           xs = data[2][0:i] + data[2][i+1:]
-#           xrs = data[1][0:i] + data[1][i+1:]
-#           pos_y = data[2][i]
-#           yr = data[1][i]
 
             neg_ys = neg_sampler.sample(neg)
             wyr = Wr[yr]
@@ -331,6 +355,11 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
                     wxr = Wr[xrs[i]]
                     wxr2, wxr3 = get_wp2_wp3(wxr)
 
+#               wyr = Wr[yr]
+#               wxr = Wr[xrs[i]]
+#               reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr = get_grad(wxr, wyr)
+#               reg_wxr_reg_wyr, grad_wxr_reg_wyr, reg_wxr_grad_wyr = get_grad2(wxr, wyr2, wyr3)
+
                 for y, label in ([(pos_y, 1)] + [(y, 0) for y in neg_ys]):
                     #TODO check
                     if xrs[i] == y:
@@ -340,13 +369,13 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 
                     wy = Wx[y]
 
-                    wxr2yr2 = wxr2 * wyr2
+                    reg_wxr_reg_wyr = wxr2 * wyr2
                     wxy = wx * wy
 
 #                   p = sigmoid(dot)
 #                   p = expit(np.dot(wxr2yr2, wxy))
 #                   p = exp_table[int((np.dot(wxr2yr2, wxy) + max_exp)*(exp_table_size/max_exp/2))]
-                    p = 1 / (1 + math.exp(-np.dot(wxr2yr2, wxy)))
+                    p = 1 / (1 + math.exp(-np.dot(reg_wxr_reg_wyr, wxy)))
                     g = alpha * (label - p)
                     if g == 0:
                         continue
@@ -356,18 +385,24 @@ def train_process(pid, Wx, Wr, walk_num, walk_length,
 #                   print yr, wyr, wyr2, wyr3
 #                   print dot, p, g
 
-                    exr = g * wxr3 * wyr2 * wxy
-                    eyr = g * wxr2 * wyr3 * wxy
-                    wxr2yr2 = g * wxr2yr2
-                    ex = wxr2yr2 * wy
+                    wxy = g * wxy
+                    exr = wyr2 * wxr3 * wxy
+                    eyr = wxr2 * wyr3 * wxy
+#                   exr = grad_wxr_reg_wyr * wxy
+#                   eyr = reg_wxr_grad_wyr * wxy
+
+                    g_reg_wxr_reg_wyr = g * reg_wxr_reg_wyr
+                    ex = g_reg_wxr_reg_wyr * wy
 #                   print 'ex', ex
 #                   print 'ey', g * wxr2 * wyr2 * wx
 #                   print 'exr', exr
 #                   print 'eyr', eyr
-                    wy += wxr2yr2 * wx
-                    wx += ex
+                    wy += g_reg_wxr_reg_wyr * wx
+
                     wxr += exr
                     wyr += eyr
+
+                    wx += ex
 #                   print 'wx', wx
 #                   print 'wy', wy
 #                   print 'wxr', wxr
