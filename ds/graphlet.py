@@ -15,6 +15,105 @@ __author__ = 'sheep'
 
 
 graph = None
+matcher = None
+id2classes_ = None
+
+
+def generate_training_set_to_file(g, m, id2classes_, length, window,
+                                  fname, num_processes=3):
+    global graph
+    graph = g
+
+    global matcher
+    matcher = m
+
+    global id2classes
+    id2classes = id2classes_
+
+    start_ends = []
+    start_id = 0
+    step = len(g.graph)/num_processes
+    for i in range(num_processes-1):
+        start_ends.append((start_id, start_id+step))
+        start_id += step
+    start_ends.append((start_id, len(g.graph)))
+
+    if num_processes > 1:
+        processes = []
+        pipes = []
+        for i in range(num_processes):
+            start_id, end_id = start_ends[i]
+            p = Process(target=sub_generate_to_file,
+                        args=(i, start_id, end_id, length, window, fname))
+            processes.append(p)
+
+        for p in processes:
+            p.start()
+
+        for p in processes:
+            p.join()
+    else:
+        sub_generate_to_file(0, 0, len(graph.graph), length, window, fname)
+
+def sub_generate_to_file(ith, start_id, end_id, length, window, fname):
+
+    def to_xs_y(data):
+        i = random.randint(0, len(data[1])-1)
+        xs = data[2][0:i] + data[2][i+1:]
+        xrs = data[1][0:i] + data[1][i+1:]
+        pos_y = data[2][i]
+        yr = data[1][i]
+        return xs, xrs, pos_y, yr
+
+    global graph
+    global matcher
+    global id2classes
+
+    step = 10000
+    lines = []
+    for id_ in xrange(start_id, end_id):
+        walk = graph.a_random_walk(id_, length)
+        for id2degrees in complete_and_count_degrees(graph, window, walk):
+            data = matcher.get_graphlet(id2classes, id2degrees)
+            if data[0] is None:
+                continue
+
+            xs, xrs, pos_y, yr = to_xs_y(data)
+            line = '%s %s %d %d\n' % (','.join(map(str, xs)),
+                                      ','.join(map(str, xrs)),
+                                      pos_y, yr)
+            lines.append(line)
+
+            if len(lines) == step:
+                with open(fname, 'a') as f:
+                    f.writelines(lines)
+                    lines = []
+
+    if len(lines) != 0:
+        with open(fname, 'a') as f:
+            f.writelines(lines)
+            lines = []
+
+def complete_and_count_degrees(graph, window, walk):
+    for i in xrange(len(walk)-1):
+        nodes = walk[i:i+window+1]
+        id2count = {nodes[0]: 1, nodes[1]: 1}
+        yield id2count
+
+        i = 2
+        while i < len(nodes):
+            to_id = nodes[i]
+            if to_id in id2count:
+                break
+
+            id2count[to_id] = 1
+            id2count[nodes[i-1]] += 1
+            for from_id in nodes[:i-1]:
+                if to_id in graph.graph[from_id]:
+                    id2count[from_id] += 1
+                    id2count[to_id] += 1
+            i += 1
+            yield id2count
 
 
 def generate_training_set(g, count, length, window, batch_size,
@@ -85,26 +184,6 @@ def generate_graphlet_pipe(g, count, length, window, batch_size,
         p.join()
 
 def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
-    def complete_and_count_degrees(window, walk):
-        for i in xrange(len(walk)-1):
-            nodes = walk[i:i+window+1]
-            id2count = {nodes[0]: 1, nodes[1]: 1}
-            yield id2count
-
-            i = 2
-            while i < len(nodes):
-                to_id = nodes[i]
-                if to_id in id2count:
-                    break
-
-                id2count[to_id] = 1
-                id2count[nodes[i-1]] += 1
-#               for from_id in nodes[:i-1]:
-#                   if to_id in graph.graph[from_id]:
-#                       id2count[from_id] += 1
-#                       id2count[to_id] += 1
-                i += 1
-                yield id2count
 
     global graph
 
@@ -119,7 +198,7 @@ def sub_generate_pipe(ith, id2classes, count, length, window, seed, pipe):
     for walk in graph.random_walks(count, length, seed=seed):
 
 #       for data in get_metapaths(window, walk):
-        for id2degrees in complete_and_count_degrees(window,walk):
+        for id2degrees in complete_and_count_degrees(graph, window, walk):
             data = matcher.get_graphlet(id2classes, id2degrees)
             if data[0] is None:
                 continue
