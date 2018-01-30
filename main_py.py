@@ -8,7 +8,6 @@ import tempfile
 
 from ds import loader
 from model.ms2vec import MP2Vec
-#from model.hin2vec import MP2Vec
 
 
 __author__ = 'sheep'
