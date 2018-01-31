@@ -351,7 +351,7 @@ int countlines()
 
 void TrainModel() {
   long a, b;
-  FILE *fo;
+  FILE *fo, *fo2;
   pthread_t *pt = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
   if (pt == NULL) {
     fprintf(stderr, "cannot allocate memory for threads\n");
@@ -383,22 +383,21 @@ void TrainModel() {
     else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
     fprintf(fo, "\n");
   }
-//  fo_mp = fopen(mp_output_file, "wb");
-//  if (fo == NULL) {
-//    fprintf(stderr, "Cannot open %s: permission denied\n", mp_output_file);
-//    exit(1);
-//  }
-//  printf("save mp vectors\n");
-//  fprintf(fo_mp, "%lld %lld\n", mp_vocab_size, layer1_size);
-//  for (a = 0; a < mp_vocab_size; a++) {
-//    if (mp_vocab[a].mp != NULL) {
-//      fprintf(fo_mp, "%s ", mp_vocab[a].mp);
-//    }
-//    for (b = 0; b < layer1_size; b++) fprintf(fo_mp, "%lf ", synr[a * layer1_size + b]);
-//    fprintf(fo_mp, "\n");
-//  }
   fclose(fo);
-//  fclose(fo_mp);
+
+  fo2 = fopen(role_output_file, "wb");
+  if (fo2 == NULL) {
+    fprintf(stderr, "Cannot open %s: permission denied\n", role_output_file);
+    exit(1);
+  }
+  printf("save role vectors %s\n", role_output_file);
+  fprintf(fo2, "%lld %lld\n", role_count, layer1_size);
+  for (a = 0; a < role_count; a++) {
+    fprintf(fo2, "%ld ", a);
+    for (b = 0; b < layer1_size; b++) fprintf(fo2, "%lf ", synr[a * layer1_size + b]);
+    fprintf(fo2, "\n");
+  }
+  fclose(fo2);
   free(table);
   free(pt);
 }

@@ -89,8 +89,8 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
         print statement
         os.system(statement)
 
-    print tmp_node_vec_fname
     output_node2vec(g, tmp_node_vec_fname, node_vec_fname)
+    output_role2vec(matcher, tmp_role_vec_fname, role_vec_fname)
 
 def output_node2vec(g, tmp_node_vec_fname, node_vec_fname):
     with open(tmp_node_vec_fname) as f:
@@ -105,6 +105,18 @@ def output_node2vec(g, tmp_node_vec_fname, node_vec_fname):
 
                 id_, vectors = line.strip().split(' ', 1)
                 line = '%s %s\n' % (id2node[int(id_)], vectors)
+                fo.write(line)
+
+def output_role2vec(matcher, tmp_role_vec_fname, role_vec_fname):
+    with open(tmp_role_vec_fname) as f:
+        with open(role_vec_fname, 'w') as fo:
+            for key, g_rs in matcher.graphlets.items():
+                gid, roles = g_rs
+                fo.write("#gid:%d\tkey:%s\troles:%s\n" % (gid,
+                                                          str(key),
+                                                          str(roles)))
+
+            for line in f:
                 fo.write(line)
 
 
