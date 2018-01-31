@@ -41,10 +41,13 @@ def generate_training_set_to_file(g, m, id2classes_, length, window,
     if num_processes > 1:
         processes = []
         pipes = []
+        fnames = []
         for i in range(num_processes):
             start_id, end_id = start_ends[i]
+            _, tmp_fname = tempfile.mkstemp()
+            fnames.append(tmp_fname)
             p = Process(target=sub_generate_to_file,
-                        args=(i, start_id, end_id, length, window, fname))
+                        args=(i, start_id, end_id, length, window, tmp_fname))
             processes.append(p)
 
         for p in processes:
@@ -52,6 +55,14 @@ def generate_training_set_to_file(g, m, id2classes_, length, window,
 
         for p in processes:
             p.join()
+
+        for i, tmp_fname in enumerate(fnames):
+            if i == 0:
+                os.system('cat %s > %s' % (tmp_fname, fname))
+                os.system('rm %s' % (tmp_fname))
+                continue
+            os.system('cat %s >> %s' % (tmp_fname, fname))
+            os.system('rm %s' % (tmp_fname))
     else:
         sub_generate_to_file(0, 0, len(graph.graph), length, window, fname)
 
@@ -79,9 +90,9 @@ def sub_generate_to_file(ith, start_id, end_id, length, window, fname):
                 continue
 
             xs, xrs, pos_y, yr = to_xs_y(data)
-            line = '%s %s %d %d\n' % (','.join(map(str, xs)),
-                                      ','.join(map(str, xrs)),
-                                      pos_y, yr)
+            line = '%d %d %s %s\n' % (pos_y, yr,
+                                      ','.join(map(str, xs)),
+                                      ','.join(map(str, xrs)))
             lines.append(line)
 
             if len(lines) == step:
