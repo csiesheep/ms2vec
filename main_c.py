@@ -58,15 +58,15 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
     _, tmp_node_vec_fname = tempfile.mkstemp()
     _, tmp_role_vec_fname = tempfile.mkstemp()
     for _ in range(options.walk_num):
-        tmp_data_fname = '/tmp/ms_data.txt'
-#       os.system('rm -f %s' % tmp_data_fname)
-#       graphlet.generate_training_set_to_file(g,
-#                                     matcher,
-#                                     id2classes,
-#                                     options.walk_length,
-#                                     options.window,
-#                                     tmp_data_fname,
-#                                     num_processes=options.num_processes)
+        tmp_data_fname = '/tmp/ms_data2.txt'
+        os.system('rm -f %s' % tmp_data_fname)
+        graphlet.generate_training_set_to_file(g,
+                                      matcher,
+                                      id2classes,
+                                      options.walk_length,
+                                      options.window,
+                                      tmp_data_fname,
+                                      num_processes=options.num_processes)
 
         print 'Learn representations...'
         statement = ("model_c/bin/ms2vec -size %d -node_count %d "

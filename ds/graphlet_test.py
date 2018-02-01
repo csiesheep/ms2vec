@@ -4,7 +4,7 @@
 import unittest
 
 from ds import network
-from ds.graphlet import GraphletCompleter, GraphletMatcher
+from ds import graphlet
 
 
 __author__ = "sheep"
@@ -107,368 +107,387 @@ __author__ = "sheep"
 
 class GraphletMatcherTest(unittest.TestCase):
 
-    def testGetGraphlet(self):
-        '''
-                   / 2 \
-            0 -- 1   |  4 -- 5
-                   \ 3 /
+#   def testGetGraphlet(self):
+#       '''
+#                  / 2 \
+#           0 -- 1   |  4 -- 5
+#                  \ 3 /
 
-            id2classes: 0,1,3,4 are 100; 2,5 are 200
-        '''
-        matcher = GraphletMatcher()
+#           id2classes: 0,1,3,4 are 100; 2,5 are 200
+#       '''
+#       matcher = GraphletMatcher()
 
-        # 0 -- 1
-        id2classes = {0: 100, 1: 100}
-        edges = set([
-            (0, 1, 0),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(0, gid)
-        self.assertEquals([0, 0], role_ids)
-        self.assertEquals([1, 0], node_ids)
-        self.assertEquals((100, 100), node_classes)
-        self.assertEquals(1, matcher.rid_offset)
-        self.assertEquals(1, len(matcher.graphlets))
+#       # 0 -- 1
+#       id2classes = {0: 100, 1: 100}
+#       edges = set([
+#           (0, 1, 0),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(0, gid)
+#       self.assertEquals([0, 0], role_ids)
+#       self.assertEquals([1, 0], node_ids)
+#       self.assertEquals((100, 100), node_classes)
+#       self.assertEquals(1, matcher.rid_offset)
+#       self.assertEquals(1, len(matcher.graphlets))
 
-        # 0 -- 1 -- 2
-        id2classes = {0: 100, 1: 100, 2: 200}
-        edges = set([
-            (0, 1, 0),
-            (1, 2, 1),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(1, gid)
-        self.assertEquals([1, 2, 2], role_ids)
-        self.assertEquals([1, 2, 0], node_ids)
-        self.assertEquals((100, 200, 100), node_classes)
-        self.assertEquals(3, matcher.rid_offset)
-        self.assertEquals(2, len(matcher.graphlets))
+#       # 0 -- 1 -- 2
+#       id2classes = {0: 100, 1: 100, 2: 200}
+#       edges = set([
+#           (0, 1, 0),
+#           (1, 2, 1),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(1, gid)
+#       self.assertEquals([1, 2, 2], role_ids)
+#       self.assertEquals([1, 2, 0], node_ids)
+#       self.assertEquals((100, 200, 100), node_classes)
+#       self.assertEquals(3, matcher.rid_offset)
+#       self.assertEquals(2, len(matcher.graphlets))
 
-        # 0 -- 1 -- 2 -- 3
-        id2classes = {0: 100, 1: 100, 2: 200, 3:100}
-        edges = set([
-            (0, 1, 0),
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(2, gid)
-        self.assertEquals([3, 4, 4, 5], role_ids)
-        self.assertEquals([1, 2, 3, 0], node_ids)
-        self.assertEquals((100, 200, 100, 100), node_classes)
-        self.assertEquals(6, matcher.rid_offset)
-        self.assertEquals(3, len(matcher.graphlets))
+#       # 0 -- 1 -- 2 -- 3
+#       id2classes = {0: 100, 1: 100, 2: 200, 3:100}
+#       edges = set([
+#           (0, 1, 0),
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(2, gid)
+#       self.assertEquals([3, 4, 4, 5], role_ids)
+#       self.assertEquals([1, 2, 3, 0], node_ids)
+#       self.assertEquals((100, 200, 100, 100), node_classes)
+#       self.assertEquals(6, matcher.rid_offset)
+#       self.assertEquals(3, len(matcher.graphlets))
 
-        # 1 -- 2
-        id2classes = {1: 100, 2: 200}
-        edges = set([
-            (1, 2, 1),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(3, gid)
-        self.assertEquals([6, 6], role_ids)
-        self.assertEquals([2, 1], node_ids)
-        self.assertEquals((200, 100), node_classes)
-        self.assertEquals(7, matcher.rid_offset)
-        self.assertEquals(4, len(matcher.graphlets))
+#       # 1 -- 2
+#       id2classes = {1: 100, 2: 200}
+#       edges = set([
+#           (1, 2, 1),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(3, gid)
+#       self.assertEquals([6, 6], role_ids)
+#       self.assertEquals([2, 1], node_ids)
+#       self.assertEquals((200, 100), node_classes)
+#       self.assertEquals(7, matcher.rid_offset)
+#       self.assertEquals(4, len(matcher.graphlets))
 
-        # 1 -- 2 -- 3
-        id2classes = {1: 100, 2: 200, 3:100}
-        edges = set([
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(4, gid)
-        self.assertEquals([7, 7, 7], role_ids)
-        self.assertEquals([2, 3, 1], node_ids)
-        self.assertEquals((200, 100, 100), node_classes)
-        self.assertEquals(8, matcher.rid_offset)
-        self.assertEquals(5, len(matcher.graphlets))
+#       # 1 -- 2 -- 3
+#       id2classes = {1: 100, 2: 200, 3:100}
+#       edges = set([
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(4, gid)
+#       self.assertEquals([7, 7, 7], role_ids)
+#       self.assertEquals([2, 3, 1], node_ids)
+#       self.assertEquals((200, 100, 100), node_classes)
+#       self.assertEquals(8, matcher.rid_offset)
+#       self.assertEquals(5, len(matcher.graphlets))
 
-        # 1 -- 2 -- 3 -- 4
-        id2classes = {1: 100, 2: 200, 3:100, 4:100}
-        edges = set([
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-            (2, 4, 1),
-            (3, 4, 0),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(5, gid)
-        self.assertEquals([8, 8, 9, 9], role_ids)
-        self.assertEquals([2, 3, 4, 1], node_ids)
-        self.assertEquals((200, 100, 100, 100), node_classes)
-        self.assertEquals(10, matcher.rid_offset)
-        self.assertEquals(6, len(matcher.graphlets))
+#       # 1 -- 2 -- 3 -- 4
+#       id2classes = {1: 100, 2: 200, 3:100, 4:100}
+#       edges = set([
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#           (2, 4, 1),
+#           (3, 4, 0),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(5, gid)
+#       self.assertEquals([8, 8, 9, 9], role_ids)
+#       self.assertEquals([2, 3, 4, 1], node_ids)
+#       self.assertEquals((200, 100, 100, 100), node_classes)
+#       self.assertEquals(10, matcher.rid_offset)
+#       self.assertEquals(6, len(matcher.graphlets))
 
-        # 2 -- 3
-        id2classes = {2: 200, 3:100}
-        edges = set([
-            (2, 3, 1),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(3, gid)
-        self.assertEquals([6, 6], role_ids)
-        self.assertEquals([2, 3], node_ids)
-        self.assertEquals((200, 100), node_classes)
-        self.assertEquals(10, matcher.rid_offset)
-        self.assertEquals(6, len(matcher.graphlets))
+#       # 2 -- 3
+#       id2classes = {2: 200, 3:100}
+#       edges = set([
+#           (2, 3, 1),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(3, gid)
+#       self.assertEquals([6, 6], role_ids)
+#       self.assertEquals([2, 3], node_ids)
+#       self.assertEquals((200, 100), node_classes)
+#       self.assertEquals(10, matcher.rid_offset)
+#       self.assertEquals(6, len(matcher.graphlets))
 
-        # 2 -- 3 -- 4
-        id2classes = {2: 200, 3:100, 4:100}
-        edges = set([
-            (2, 3, 1),
-            (2, 4, 1),
-            (3, 4, 0),
-        ])
-        gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
-        self.assertEquals(4, gid)
-        self.assertEquals([7, 7, 7], role_ids)
-        self.assertEquals([2, 4, 3], node_ids)
-        self.assertEquals((200, 100, 100), node_classes)
-        self.assertEquals(10, matcher.rid_offset)
-        self.assertEquals(6, len(matcher.graphlets))
+#       # 2 -- 3 -- 4
+#       id2classes = {2: 200, 3:100, 4:100}
+#       edges = set([
+#           (2, 3, 1),
+#           (2, 4, 1),
+#           (3, 4, 0),
+#       ])
+#       gid, role_ids, node_ids, node_classes = matcher.get_graphlet(id2classes, edges)
+#       self.assertEquals(4, gid)
+#       self.assertEquals([7, 7, 7], role_ids)
+#       self.assertEquals([2, 4, 3], node_ids)
+#       self.assertEquals((200, 100, 100), node_classes)
+#       self.assertEquals(10, matcher.rid_offset)
+#       self.assertEquals(6, len(matcher.graphlets))
 
-    def testToCodeIsomorphism(self):
-        id2classes = {0: 100, 1: 100, 2: 100, 3: 200}
-        edges = set([
-            (0, 1, 0),
-            (1, 2, 0),
-            (1, 3, 1),
-            (2, 3, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [1, 3, 2, 0]
-        expected_degrees = (3, 2, 2, 1)
-        expected_classes = (100, 200, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#   def testToCodeIsomorphism(self):
+#       id2classes = {0: 100, 1: 100, 2: 100, 3: 200}
+#       edges = set([
+#           (0, 1, 0),
+#           (1, 2, 0),
+#           (1, 3, 1),
+#           (2, 3, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [1, 3, 2, 0]
+#       expected_degrees = (3, 2, 2, 1)
+#       expected_classes = (100, 200, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        id2classes = {0: 100, 1: 100, 2: 200, 3: 100}
-        edges = set([
-            (0, 1, 0),
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [1, 2, 3, 0]
-        expected_degrees = (3, 2, 2, 1)
-        expected_classes = (100, 200, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       id2classes = {0: 100, 1: 100, 2: 200, 3: 100}
+#       edges = set([
+#           (0, 1, 0),
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [1, 2, 3, 0]
+#       expected_degrees = (3, 2, 2, 1)
+#       expected_classes = (100, 200, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        id2classes = {0: 200, 1: 100, 2: 100, 3: 100}
-        edges = set([
-            (0, 1, 1),
-            (0, 2, 1),
-            (1, 2, 0),
-            (2, 3, 0),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [2, 0, 1, 3]
-        expected_degrees = (3, 2, 2, 1)
-        expected_classes = (100, 200, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       id2classes = {0: 200, 1: 100, 2: 100, 3: 100}
+#       edges = set([
+#           (0, 1, 1),
+#           (0, 2, 1),
+#           (1, 2, 0),
+#           (2, 3, 0),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [2, 0, 1, 3]
+#       expected_degrees = (3, 2, 2, 1)
+#       expected_classes = (100, 200, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-    def testToCodeDifferentGraphlet(self):
-        '''
-                   / 2 \
-            0 -- 1   |  4 -- 5
-                   \ 3 /
+#   def testToCodeDifferentGraphlet(self):
+#       '''
+#                  / 2 \
+#           0 -- 1   |  4 -- 5
+#                  \ 3 /
 
-            id2classes: 0,1,3,4 are 100; 2,5 are 200
-        '''
-        # 0 -- 1
-        id2classes = {0: 100, 1: 100}
-        edges = set([
-            (0, 1, 0),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [1, 0]
-        expected_degrees = (1, 1)
-        expected_classes = (100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#           id2classes: 0,1,3,4 are 100; 2,5 are 200
+#       '''
+#       # 0 -- 1
+#       id2classes = {0: 100, 1: 100}
+#       edges = set([
+#           (0, 1, 0),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [1, 0]
+#       expected_degrees = (1, 1)
+#       expected_classes = (100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 0 -- 1 -- 2
-        id2classes = {0: 100, 1: 100, 2: 200}
-        edges = set([
-            (0, 1, 0),
-            (1, 2, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [1, 2, 0]
-        expected_degrees = (2, 1, 1)
-        expected_classes = (100, 200, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 0 -- 1 -- 2
+#       id2classes = {0: 100, 1: 100, 2: 200}
+#       edges = set([
+#           (0, 1, 0),
+#           (1, 2, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [1, 2, 0]
+#       expected_degrees = (2, 1, 1)
+#       expected_classes = (100, 200, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 0 -- 1 -- 2 -- 3
-        id2classes = {0: 100, 1: 100, 2: 200, 3:100}
-        edges = set([
-            (0, 1, 0),
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [1, 2, 3, 0]
-        expected_degrees = (3, 2, 2, 1)
-        expected_classes = (100, 200, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 0 -- 1 -- 2 -- 3
+#       id2classes = {0: 100, 1: 100, 2: 200, 3:100}
+#       edges = set([
+#           (0, 1, 0),
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [1, 2, 3, 0]
+#       expected_degrees = (3, 2, 2, 1)
+#       expected_classes = (100, 200, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 1 -- 2
-        id2classes = {1: 100, 2: 200}
-        edges = set([
-            (1, 2, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [2, 1]
-        expected_degrees = (1, 1)
-        expected_classes = (200, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 1 -- 2
+#       id2classes = {1: 100, 2: 200}
+#       edges = set([
+#           (1, 2, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [2, 1]
+#       expected_degrees = (1, 1)
+#       expected_classes = (200, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 1 -- 2 -- 3
-        id2classes = {1: 100, 2: 200, 3:100}
-        edges = set([
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [2, 3, 1]
-        expected_degrees = (2, 2, 2)
-        expected_classes = (200, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 1 -- 2 -- 3
+#       id2classes = {1: 100, 2: 200, 3:100}
+#       edges = set([
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [2, 3, 1]
+#       expected_degrees = (2, 2, 2)
+#       expected_classes = (200, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 1 -- 2 -- 3 -- 4
-        id2classes = {1: 100, 2: 200, 3:100, 4:100}
-        edges = set([
-            (1, 2, 1),
-            (1, 3, 0),
-            (2, 3, 1),
-            (2, 4, 1),
-            (3, 4, 0),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [2, 3, 4, 1]
-        expected_degrees = (3, 3, 2, 2)
-        expected_classes = (200, 100, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 1 -- 2 -- 3 -- 4
+#       id2classes = {1: 100, 2: 200, 3:100, 4:100}
+#       edges = set([
+#           (1, 2, 1),
+#           (1, 3, 0),
+#           (2, 3, 1),
+#           (2, 4, 1),
+#           (3, 4, 0),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [2, 3, 4, 1]
+#       expected_degrees = (3, 3, 2, 2)
+#       expected_classes = (200, 100, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 2 -- 3
-        id2classes = {2: 200, 3:100}
-        edges = set([
-            (2, 3, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [2, 3]
-        expected_degrees = (1, 1)
-        expected_classes = (200, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 2 -- 3
+#       id2classes = {2: 200, 3:100}
+#       edges = set([
+#           (2, 3, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [2, 3]
+#       expected_degrees = (1, 1)
+#       expected_classes = (200, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 2 -- 3 -- 4
-        id2classes = {2: 200, 3:100, 4:100}
-        edges = set([
-            (2, 3, 1),
-            (2, 4, 1),
-            (3, 4, 0),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [2, 4, 3]
-        expected_degrees = (2, 2, 2)
-        expected_classes = (200, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 2 -- 3 -- 4
+#       id2classes = {2: 200, 3:100, 4:100}
+#       edges = set([
+#           (2, 3, 1),
+#           (2, 4, 1),
+#           (3, 4, 0),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [2, 4, 3]
+#       expected_degrees = (2, 2, 2)
+#       expected_classes = (200, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 2 -- 3 -- 4 -- 5
-        id2classes = {2: 200, 3:100, 4:100, 5:200}
-        edges = set([
-            (2, 3, 1),
-            (2, 4, 1),
-            (3, 4, 0),
-            (4, 5, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [4, 2, 3, 5]
-        expected_degrees = (3, 2, 2, 1)
-        expected_classes = (100, 200, 100, 200)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 2 -- 3 -- 4 -- 5
+#       id2classes = {2: 200, 3:100, 4:100, 5:200}
+#       edges = set([
+#           (2, 3, 1),
+#           (2, 4, 1),
+#           (3, 4, 0),
+#           (4, 5, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [4, 2, 3, 5]
+#       expected_degrees = (3, 2, 2, 1)
+#       expected_classes = (100, 200, 100, 200)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 3 -- 4
-        id2classes = {3:100, 4:100}
-        edges = set([
-            (3, 4, 0),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [4, 3]
-        expected_degrees = (1, 1)
-        expected_classes = (100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 3 -- 4
+#       id2classes = {3:100, 4:100}
+#       edges = set([
+#           (3, 4, 0),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [4, 3]
+#       expected_degrees = (1, 1)
+#       expected_classes = (100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
-        # 3 -- 4 -- 5
-        id2classes = {3:100, 4:100, 5:100}
-        edges = set([
-            (3, 4, 0),
-            (4, 5, 1),
-        ])
-        ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
-        expected_ids= [4, 5, 3]
-        expected_degrees = (2, 1, 1)
-        expected_classes = (100, 100, 100)
-        self.assertEquals(expected_ids, ids)
-        self.assertEquals(expected_degrees, degrees)
-        self.assertEquals(expected_classes, classes)
+#       # 3 -- 4 -- 5
+#       id2classes = {3:100, 4:100, 5:100}
+#       edges = set([
+#           (3, 4, 0),
+#           (4, 5, 1),
+#       ])
+#       ids, degrees, classes = GraphletMatcher.to_code(id2classes, edges)
+#       expected_ids= [4, 5, 3]
+#       expected_degrees = (2, 1, 1)
+#       expected_classes = (100, 100, 100)
+#       self.assertEquals(expected_ids, ids)
+#       self.assertEquals(expected_degrees, degrees)
+#       self.assertEquals(expected_classes, classes)
 
     def testCompleteAndCountDegrees(self):
         '''
                    / 2 \
             0 -- 1   |  4 -- 5
-                   \ 3 /
+                   \ 3 /____/
 
             id2classes: 0,1,3,4 are 100; 2,5 are 200
         '''
         g = network.HIN()
         g.add_edge(0, 'U', 1, 'U', 0)
+        g.add_edge(1, 'U', 0, 'U', 0)
         g.add_edge(1, 'U', 2, 'B', 1)
+        g.add_edge(2, 'B', 1, 'U', 1)
         g.add_edge(1, 'U', 3, 'U', 0)
+        g.add_edge(3, 'U', 1, 'U', 0)
         g.add_edge(2, 'B', 3, 'U', 1)
+        g.add_edge(3, 'U', 2, 'B', 1)
         g.add_edge(2, 'B', 4, 'U', 1)
+        g.add_edge(4, 'U', 2, 'B', 1)
         g.add_edge(3, 'U', 4, 'U', 0)
+        g.add_edge(3, 'U', 5, 'B', 1)
+        g.add_edge(5, 'B', 3, 'U', 1)
+        g.add_edge(4, 'U', 3, 'U', 0)
         g.add_edge(4, 'U', 5, 'B', 1)
+        g.add_edge(5, 'B', 4, 'U', 1)
 
-        nodes = [0, 1, 2, 3]
+        window = 4
+        walk = [0, 1, 2, 3, 4, 5, 4]
 
         expected = [
             {0:1, 1:1},
             {0:1, 1:2, 2:1},
             {0:1, 1:3, 2:2, 3:2},
+            {0: 20, 1: 58, 2: 59, 3: 59, 4: 40},
+            {1:1, 2:1},
+            {1:2, 2:2, 3:2},
+            {1:2, 2:3, 3:3, 4:2},
+            {1: 41, 2: 60, 3: 78, 4: 60, 5: 41}
         ]
-        for i, a in enumerate(GraphletMatcher.complete_and_count_degrees(g, nodes)):
+        for i, a in enumerate(graphlet.complete_and_count_degrees(g,
+                                                                  window,
+                                                                  walk)):
+            if i > 7:
+                break
             self.assertEquals(expected[i], a)
