@@ -117,7 +117,7 @@ void DestroyNet() {
 }
 
 void *TrainModelThread(void *id) {
-  long long a, b;
+  long long a, b, n;
   char item[MAX_STRING];
   long long data_count = 0, last_data_count = 0;
   real f, g;
@@ -210,39 +210,36 @@ void *TrainModelThread(void *id) {
       lyr = yr * layer1_size;
      
       //Learning
-      if (equal == 1)
+      weight = 1.0/x_size;
+      next_random = next_random * (unsigned long long)25214903917 + 11;
+      for (n = 0; n < negative + 1; n++)
       {
-        if (x_size <= 2) weight = 1.0;
-        else weight = 1.0/(x_size-1);
-      }
-      for (a=0; a<x_size; a++)
-      {
-        x = xs[a];
-        xr = xrs[a];
+        //Training of a data
+        if (n == 0) {
+          label = 1;
+          y = pos_y;
+        } else {
+          // negative sampling
+          next_random = next_random * (unsigned long long)25214903917 + 11;
+          y = table[(next_random >> 16) % table_size];
+          if (y == x || y == pos_y) continue;
+          label = 0;
+        }
+        ly = y * layer1_size;
      
-        next_random = next_random * (unsigned long long)25214903917 + 11;
-        for (b = 0; b < negative + 1; b++) {
-          if (b == 0) {
-            label = 1;
-            y = pos_y;
-          } else {
-            // negative sampling
-            next_random = next_random * (unsigned long long)25214903917 + 11;
-            y = table[(next_random >> 16) % table_size];
-            if (y == x || y == pos_y) continue;
-            label = 0;
-          }
-     
-          //Training of a data
+        for (c = 0; c < layer1_size; c++) ex[c] = 0;
+        for (c = 0; c < layer1_size; c++) exr[c] = 0;
+        for (c = 0; c < layer1_size; c++) eyr[c] = 0;
+
+        //Predicting
+        f = 0;
+        for (a=0; a<x_size; a++)
+        {
+          x = xs[a];
+          xr = xrs[a];
           lx = x * layer1_size;
-          ly = y * layer1_size;
           lxr = xr * layer1_size;
-          for (c = 0; c < layer1_size; c++) ex[c] = 0;
-          for (c = 0; c < layer1_size; c++) exr[c] = 0;
-          for (c = 0; c < layer1_size; c++) eyr[c] = 0;
-          
-          //Predicting
-          f = 0;
+            
           for (c = 0; c < layer1_size; c++) {
             if (sigmoid_reg) {
               if (synr[c + lxr] < -MAX_EXP || synr[c + lyr] < -MAX_EXP) continue;
@@ -269,13 +266,22 @@ void *TrainModelThread(void *id) {
               }
             }
           }
-          if (f > MAX_EXP) g = (label - 1) * alpha;
-          else if (f < -MAX_EXP) g = (label - 0) * alpha;
-          else g = (label - expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
-          g *= weight;
-     
-          //Updating
-          //error of x
+        }
+        f *= weight;
+
+        if (f > MAX_EXP) g = (label - 1) * alpha;
+        else if (f < -MAX_EXP) g = (label - 0) * alpha;
+        else g = (label - expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))]) * alpha;
+      
+        //Updating
+        //error of x
+        for (a=0; a<x_size; a++)
+        {
+          x = xs[a];
+          xr = xrs[a];
+          lx = x * layer1_size;
+          lxr = xr * layer1_size;
+
           for (c = 0; c < layer1_size; c++) {
             if (sigmoid_reg) {
               if (synr[c + lxr] < -MAX_EXP || synr[c + lyr] < -MAX_EXP) continue;
@@ -335,75 +341,72 @@ void *TrainModelThread(void *id) {
             }
           }
           //error of yr
-          if (yr == xr) {
-//          for (c = 0; c < layer1_size; c++) eyr[c] = exr[c];
-          }
-          else {
-            for (c = 0; c < layer1_size; c++) {
-              if (sigmoid_reg)
+          for (c = 0; c < layer1_size; c++)
+          {
+            if (sigmoid_reg)
+            {
+              if (synr[c + lxr] < -MAX_EXP) continue; 
+              else if (synr[c + lxr] > MAX_EXP)
               {
-                if (synr[c + lxr] < -MAX_EXP) continue; 
-                else if (synr[c + lxr] > MAX_EXP)
-                {
-                  f = synr[c + lyr];
-                  if (f > MAX_EXP || f < -MAX_EXP) continue;
-                  sigmoid = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                  eyr[c] = g * syn0[c + lx] * syn0[c + ly] * sigmoid * (1-sigmoid);
-                }
-                else
-                {
-                  sigmoid2 = expTable[(int)((synr[c + lxr] + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                  f = synr[c + lxr];
-                  if (f > MAX_EXP || f < -MAX_EXP) continue;
-                  sigmoid = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                  exr[c] = g * syn0[c + lx] * syn0[c + ly] * sigmoid * (1-sigmoid) * sigmoid2;
-                }
-              }
-              else
-              {
-                if (synr[c + lxr] < 0) continue; 
                 f = synr[c + lyr];
                 if (f > MAX_EXP || f < -MAX_EXP) continue;
                 sigmoid = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
                 eyr[c] = g * syn0[c + lx] * syn0[c + ly] * sigmoid * (1-sigmoid);
               }
+              else
+              {
+                sigmoid2 = expTable[(int)((synr[c + lxr] + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
+                f = synr[c + lxr];
+                if (f > MAX_EXP || f < -MAX_EXP) continue;
+                sigmoid = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
+                exr[c] = g * syn0[c + lx] * syn0[c + ly] * sigmoid * (1-sigmoid) * sigmoid2;
+              }
+            }
+            else
+            {
+              if (synr[c + lxr] < 0) continue; 
+              f = synr[c + lyr];
+              if (f > MAX_EXP || f < -MAX_EXP) continue;
+              sigmoid = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
+              eyr[c] = g * syn0[c + lx] * syn0[c + ly] * sigmoid * (1-sigmoid);
             }
           }
+          
           //update y
           for (c = 0; c < layer1_size; c++) {
             if (sigmoid_reg) {
               if (synr[c + lxr] < -MAX_EXP || synr[c + lyr] < -MAX_EXP) continue;
               if (synr[c + lxr] > MAX_EXP) {
-                if (synr[c + lyr] > MAX_EXP) syn0[c + ly] += g * syn0[c + lx];
+                if (synr[c + lyr] > MAX_EXP) syn0[c + ly] += g * syn0[c + lx] * weight;
                 else {
                   sigmoid = expTable[(int)((synr[c + lyr] + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                  syn0[c + ly] += g * sigmoid * syn0[c + lx];
+                  syn0[c + ly] += g * sigmoid * syn0[c + lx] * weight;
                 }
               }
               else if (synr[c + lyr] > MAX_EXP) {
                 sigmoid = expTable[(int)((synr[c + lxr] + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                syn0[c + ly] += g * sigmoid * syn0[c + lx];
+                syn0[c + ly] += g * sigmoid * syn0[c + lx] * weight;
               }
               else {
                 sigmoid = expTable[(int)((synr[c + lxr] + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
                 sigmoid2 = expTable[(int)((synr[c + lyr] + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
-                syn0[c + ly] += g * sigmoid * sigmoid2 * syn0[c + lx];
+                syn0[c + ly] += g * sigmoid * sigmoid2 * syn0[c + lx] * weight;
               }
             }
             else
             {
               if (synr[c + lxr] >= 0 && synr[c + lyr] >= 0)
               {
-                syn0[c + ly] += g * syn0[c + lx];
+                syn0[c + ly] += g * syn0[c + lx] * weight;
               }
             }
           }
           //update x, xr, yr
           for (c = 0; c < layer1_size; c++)
           {
-            syn0[c + lx] += ex[c];
-            synr[c + lxr] += exr[c];
-            synr[c + lyr] += eyr[c];
+            syn0[c + lx] += ex[c] * weight;
+            synr[c + lxr] += exr[c] * weight;
+            synr[c + lyr] += eyr[c] * weight;
           }
         }
       }

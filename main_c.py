@@ -37,38 +37,40 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
         for id_ in ids:
             id2classes[id_] = class_
 
+    print 'Preprocess graphlet matcher...'
+    id2freq = dict(zip(g.graph.keys(), [0]*len(g.graph)))
     matcher = graphlet.GraphletMatcher()
-    for walk in g.random_walks(1, 100):
+    for walk in g.random_walks(1, 50):
         for id2degrees in graphlet.complete_and_count_degrees(g,
                                                            options.window,
                                                            walk):
             matcher.get_graphlet(id2classes, id2degrees)
-    print len(matcher.graphlets)
-
-    id2freq = dict(zip(g.graph.keys(), [0]*len(g.graph)))
-    for walk in g.random_walks(1, 100):
         for id_ in walk:
             id2freq[id_] += 1
+    print 'graphlet:', len(matcher.graphlets)
+    print 'roles:', matcher.rid_offset
     tmp_freq_fname = '/tmp/ms_freq.txt'
     with open(tmp_freq_fname, 'w') as f:
         for id_, freq in sorted(id2freq.items()):
             f.write('%d\n' % (freq))
 
+    print 'Generate training set'
     _, tmp_node_vec_fname = tempfile.mkstemp()
     _, tmp_role_vec_fname = tempfile.mkstemp()
     for _ in range(options.walk_num):
         tmp_data_fname = '/tmp/ms_data.txt'
-        os.system('rm -f %s' % tmp_data_fname)
-        graphlet.generate_training_set_to_file(g,
-                                      matcher,
-                                      id2classes,
-                                      options.walk_length,
-                                      options.window,
-                                      tmp_data_fname,
-                                      num_processes=options.num_processes)
+#       os.system('rm -f %s' % tmp_data_fname)
+#       graphlet.generate_training_set_to_file(g,
+#                                     matcher,
+#                                     id2classes,
+#                                     options.walk_length,
+#                                     options.window,
+#                                     tmp_data_fname,
+#                                     num_processes=options.num_processes)
 
         print 'Learn representations...'
         statement = ("model_c/bin/ms2vec -size %d -node_count %d "
+#       statement = ("model_c/bin/ms2vec_c2t -size %d -node_count %d "
                      "-role_count %d -train %s -freq %s -alpha %f "
                      "-output %s -output_role %s -window %d -negative %d "
                      "-threads %d -sigmoid_reg %d -iteration %d -equal %d"
