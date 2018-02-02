@@ -40,7 +40,7 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
     print 'Preprocess graphlet matcher...'
     id2freq = dict(zip(g.graph.keys(), [0]*len(g.graph)))
     matcher = graphlet.GraphletMatcher()
-    for walk in g.random_walks(1, 50):
+    for walk in g.random_walks(1, 100):
         for id2degrees in graphlet.complete_and_count_degrees(g,
                                                            options.window,
                                                            walk):
@@ -58,7 +58,7 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
     _, tmp_node_vec_fname = tempfile.mkstemp()
     _, tmp_role_vec_fname = tempfile.mkstemp()
     for _ in range(options.walk_num):
-        tmp_data_fname = '/tmp/ms_data2.txt'
+        tmp_data_fname = '/tmp/ms_data.txt'
         os.system('rm -f %s' % tmp_data_fname)
         graphlet.generate_training_set_to_file(g,
                                       matcher,
