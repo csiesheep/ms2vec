@@ -90,9 +90,9 @@ def sub_generate_to_file(ith, start_id, end_id, length, window, fname):
                 continue
 
             xs, xrs, pos_y, yr = to_xs_y(data)
-            line = '%d %d %s %s\n' % (pos_y, yr,
-                                      ','.join(map(str, xs)),
-                                      ','.join(map(str, xrs)))
+            line = '%d %d %d %s %s\n' % (data[0], pos_y, yr,
+                                         ','.join(map(str, xs)),
+                                         ','.join(map(str, xrs)))
             lines.append(line)
 
             if len(lines) == step:
