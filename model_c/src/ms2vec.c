@@ -134,9 +134,6 @@ void *TrainModelThread(void *id) {
   real *eyr = (real *)calloc(layer1_size, sizeof(real));
   real *eg = (real *)calloc(layer1_size, sizeof(real));
   real *xy = (real *)calloc(layer1_size, sizeof(real));
-//real *sxr = (real *)calloc(layer1_size, sizeof(real));
-//real *syr = (real *)calloc(layer1_size, sizeof(real));
-//real *sg = (real *)calloc(layer1_size, sizeof(real));
   long long lx, ly, lxr, lyr, lg, c, label;
   char tokens[5][MAX_STRING];
   char *token;
@@ -222,11 +219,7 @@ void *TrainModelThread(void *id) {
       lg = gid * layer1_size;
      
       //Learning
-      if (equal == 1)
-      {
-        if (x_size <= 2) weight = 1.0;
-        else weight = 1.0/(x_size-1);
-      }
+      if (equal == 1) weight = 1.0/x_size;
       for (a=0; a<x_size; a++)
       {
         x = xs[a];
