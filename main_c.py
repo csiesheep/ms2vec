@@ -17,7 +17,7 @@ from model.ms2vec import MP2Vec
 __author__ = 'sheep'
 
 
-def main(graph_fname, node_vec_fname, role_vec_fname, options):
+def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, options):
     '''\
     %prog [options] <graph_fname> <node_vec_fname> <path_vec_fname>
 
@@ -58,7 +58,7 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
     _, tmp_node_vec_fname = tempfile.mkstemp()
     _, tmp_role_vec_fname = tempfile.mkstemp()
     for _ in range(options.walk_num):
-        tmp_data_fname = '/tmp/ms_data.txt'
+        tmp_data_fname = '/tmp/ms_data3.txt'
         os.system('rm -f %s' % tmp_data_fname)
         graphlet.generate_training_set_to_file(g,
                                       matcher,
@@ -69,19 +69,24 @@ def main(graph_fname, node_vec_fname, role_vec_fname, options):
                                       num_processes=options.num_processes)
 
         print 'Learn representations...'
-        statement = ("model_c/bin/ms2vec -size %d -node_count %d "
-#       statement = ("model_c/bin/ms2vec_c2t -size %d -node_count %d "
-                     "-role_count %d -train %s -freq %s -alpha %f "
-                     "-output %s -output_role %s -window %d -negative %d "
+#       statement = ("model_c/bin/ms2vec -size %d -node_count %d "
+        statement = ("model_c/bin/ms2vec_c2t -size %d -node_count %d "
+                     "-role_count %d -graphlet_count %d -role_ratio %f "
+                     "-train %s -freq %s -alpha %f "
+                     "-output %s -output_role %s -output_graphlet %s "
+                     "-window %d -negative %d "
                      "-threads %d -sigmoid_reg %d -iteration %d -equal %d"
                      "" % (options.dim,
                            len(g.graph),
                            matcher.rid_offset,
+                           len(matcher.graphlets),
+                           options.role_ratio,
                            tmp_data_fname,
                            tmp_freq_fname,
                            options.alpha,
                            tmp_node_vec_fname,
                            tmp_role_vec_fname,
+                           graphlet_vec_fname,
                            options.window,
                            options.neg,
                            options.num_processes,
@@ -144,6 +149,10 @@ if __name__ == '__main__':
     parser.add_option('-a', '--alpha', action='store', dest='alpha',
                       default=0.025, type='float',
                       help='Starting learning rate (default: 0.025)')
+    parser.add_option('-r', '--role_ratio', action='store',
+                      dest='role_ratio',
+                      default=1.0, type='float',
+                      help='Learning ratio of roles (default: 1.0)')
     parser.add_option('-w', '--window', action='store', dest='window',
                       default=1, type='int',
                       help='Max window length (default: 3)')
@@ -153,15 +162,11 @@ if __name__ == '__main__':
     parser.add_option('-i', '--iter', action='store', dest='iter',
                       default=1, type='int',
                       help='Training iterations (default: 1)')
-    parser.add_option('-s', '--same-matrix', action='store_true',
-                      dest='same_w', default=False,
-                      help=('Same matrix for nodes and context nodes '
-                            '(Default: False)'))
     parser.add_option('-c', '--allow-circle', action='store_true',
                       dest='allow_circle', default=False,
                       help=('Set to all circles in relationships between '
                             'nodes (Default: not allow)'))
-    parser.add_option('-r', '--sigmoid_regularization',
+    parser.add_option('-s', '--sigmoid_regularization',
                       action='store_true', dest='sigmoid_reg',
                       default=False,
                       help=('Use sigmoid function for regularization '
@@ -180,9 +185,9 @@ if __name__ == '__main__':
                             '(Default: binary-step function)'))
     options, args = parser.parse_args()
 
-    if len(args) != 3:
+    if len(args) != 4:
         parser.print_help()
         sys.exit()
 
-    sys.exit(main(args[0], args[1], args[2], options))
+    sys.exit(main(args[0], args[1], args[2], args[3], options))
 
