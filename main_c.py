@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf8 -*-
 
+import cPickle
 import math
 import numpy as np
 import optparse
@@ -11,7 +12,6 @@ import tempfile
 from ds import loader
 from ds import graphlet
 from model.ms2vec import MP2Vec
-#from model.hin2vec import MP2Vec
 
 
 __author__ = 'sheep'
@@ -19,7 +19,7 @@ __author__ = 'sheep'
 
 def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, options):
     '''\
-    %prog [options] <graph_fname> <node_vec_fname> <path_vec_fname>
+    %prog [options] <graph_fname> <node_vec_fname> <path_vec_fname> <graphlet_vec_fname>
 
     graph_fname: the graph file
         It can be a file contained edges per line (e.g., res/karate_club_edges.txt)
@@ -38,15 +38,40 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
             id2classes[id_] = class_
 
     print 'Preprocess graphlet matcher...'
-    id2freq = dict(zip(g.graph.keys(), [0]*len(g.graph)))
-    matcher = graphlet.GraphletMatcher()
-    for walk in g.random_walks(1, 100):
-        for id2degrees in graphlet.complete_and_count_degrees(g,
-                                                           options.window,
-                                                           walk):
-            matcher.get_graphlet(id2classes, id2degrees)
-        for id_ in walk:
-            id2freq[id_] += 1
+    to_freq = False
+    if options.freq_fname is None or not os.path.exists(options.freq_fname):
+        to_freq = True
+        id2freq = dict(zip(g.graph.keys(), [0]*len(g.graph)))
+    else:
+        print 'load id2freq', options.freq_fname
+        id2freq = cPickle.load(open(options.freq_fname))
+
+    to_matcher = False
+    if options.matcher_fname is None or not os.path.exists(options.matcher_fname):
+        to_matcher = True
+        matcher = graphlet.GraphletMatcher()
+    else:
+        print 'load matcher ', options.matcher_fname
+        matcher = cPickle.load(open(options.matcher_fname))
+
+    if to_freq or to_matcher:
+        for walk in g.random_walks(1, 100):
+            if to_matcher:
+                for id2degrees in graphlet.complete_and_count_degrees(g,
+                                                                   options.window,
+                                                                   walk):
+                    matcher.get_graphlet(id2classes, id2degrees)
+            if to_freq:
+                for id_ in walk:
+                    id2freq[id_] += 1
+
+        if to_freq:
+            print 'dump id2freq', options.freq_fname
+            cPickle.dump(id2freq, open(options.freq_fname, 'w'))
+        if to_matcher:
+            print 'dump matcher', options.matcher_fname
+            cPickle.dump(matcher, open(options.matcher_fname, 'w'))
+
     print 'graphlet:', len(matcher.graphlets)
     print 'roles:', matcher.rid_offset
     tmp_freq_fname = '/tmp/ms_freq.txt'
@@ -57,9 +82,17 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
     print 'Generate training set'
     _, tmp_node_vec_fname = tempfile.mkstemp()
     _, tmp_role_vec_fname = tempfile.mkstemp()
-    for _ in range(options.walk_num):
-        tmp_data_fname = '/tmp/ms_data3.txt'
-        os.system('rm -f %s' % tmp_data_fname)
+
+    tmp_data_fname = options.training_fname
+    to_generate = False
+    if options.training_fname is None:
+        _, tmp_data_fname = tempfile.mkstemp()
+        print tmp_data_fname
+        to_generate = True
+    elif not os.path.exists(options.training_fname):
+        to_generate = True
+
+    if to_generate:
         graphlet.generate_training_set_to_file(g,
                                       matcher,
                                       id2classes,
@@ -68,33 +101,36 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
                                       tmp_data_fname,
                                       num_processes=options.num_processes)
 
-        print 'Learn representations...'
-#       statement = ("model_c/bin/ms2vec -size %d -node_count %d "
-        statement = ("model_c/bin/ms2vec_c2t -size %d -node_count %d "
-                     "-role_count %d -graphlet_count %d -role_ratio %f "
-                     "-train %s -freq %s -alpha %f "
-                     "-output %s -output_role %s -output_graphlet %s "
-                     "-window %d -negative %d "
-                     "-threads %d -sigmoid_reg %d -iteration %d -equal %d"
-                     "" % (options.dim,
-                           len(g.graph),
-                           matcher.rid_offset,
-                           len(matcher.graphlets),
-                           options.role_ratio,
-                           tmp_data_fname,
-                           tmp_freq_fname,
-                           options.alpha,
-                           tmp_node_vec_fname,
-                           tmp_role_vec_fname,
-                           graphlet_vec_fname,
-                           options.window,
-                           options.neg,
-                           options.num_processes,
-                           options.sigmoid_reg * 1,
-                           options.iter,
-                           options.equal * 1))
-        print statement
-        os.system(statement)
+    print 'Learn representations...'
+    model = 'ms2vec'
+    if options.mode:
+        model = 'ms2vec_c2t'
+    statement = ("model_c/bin/%s -size %d -node_count %d "
+                 "-role_count %d -graphlet_count %d -role_ratio %f "
+                 "-train %s -freq %s -alpha %f "
+                 "-output %s -output_role %s -output_graphlet %s "
+                 "-window %d -negative %d "
+                 "-threads %d -sigmoid_reg %d -iteration %d -equal %d"
+                 "" % (model,
+                       options.dim,
+                       len(g.graph),
+                        matcher.rid_offset,
+                        len(matcher.graphlets),
+                       options.role_ratio,
+                       tmp_data_fname,
+                       tmp_freq_fname,
+                       options.alpha,
+                       tmp_node_vec_fname,
+                       tmp_role_vec_fname,
+                       graphlet_vec_fname,
+                       options.window,
+                       options.neg,
+                       options.num_processes,
+                       options.sigmoid_reg * 1,
+                       options.iter,
+                       options.equal * 1))
+    print statement
+    os.system(statement)
 
     output_node2vec(g, tmp_node_vec_fname, node_vec_fname)
     output_role2vec(matcher, tmp_role_vec_fname, role_vec_fname)
@@ -133,10 +169,10 @@ if __name__ == '__main__':
                       dest='walk_length', default=100, type='int',
                       help=('The length of each random walk '
                             '(default: 100)'))
-    parser.add_option('-k', '--walk-num', action='store',
-                      dest='walk_num', default=10, type='int',
-                      help=('The number of random walks starting from '
-                            'each node (default: 10)'))
+#   parser.add_option('-k', '--walk-num', action='store',
+#                     dest='walk_num', default=10, type='int',
+#                     help=('The number of random walks starting from '
+#                           'each node (default: 10)'))
     parser.add_option('-n', '--negative', action='store', dest='neg',
                       default=5, type='int',
                       help=('Number of negative examples (>0) for '
@@ -183,6 +219,26 @@ if __name__ == '__main__':
                       help=('Use sigmoid function for regularization '
                             'for meta-path vectors '
                             '(Default: binary-step function)'))
+    parser.add_option('-m', '--mode',
+                      action='store_true', dest='mode',
+                      default=False,
+                      help=('Change to c2t model '
+                            '(Default: t2c model)'))
+    parser.add_option('-f', '--training_fname',
+                      action='store', dest='training_fname',
+                      default=None,
+                      help=('Training file name '
+                            '(Default: None)'))
+    parser.add_option('-g', '--matcher_fname',
+                      action='store', dest='matcher_fname',
+                      default=None,
+                      help=('Matcher file name '
+                            '(Default: None)'))
+    parser.add_option('-q', '--freq_fname',
+                      action='store', dest='freq_fname',
+                      default=None,
+                      help=('Node frequency file name '
+                            '(Default: None)'))
     options, args = parser.parse_args()
 
     if len(args) != 4:
