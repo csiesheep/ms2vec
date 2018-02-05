@@ -306,8 +306,8 @@ class HIN(object):
             n = 0
             for node in self.graph:
                 n += 1
-#               if n % 100 == 0:
-#                   print n
+                if n % 1000 == 0:
+                    print n
                 walk = self.a_random_walk(node, length)
                 if len(walk) != 1:
                     yield walk
