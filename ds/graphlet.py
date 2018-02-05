@@ -85,7 +85,7 @@ def sub_generate_to_file(ith, start_id, end_id, length, window, fname):
     for id_ in xrange(start_id, end_id):
         walk = graph.a_random_walk(id_, length)
         for id2degrees in complete_and_count_degrees(graph, window, walk):
-            data = matcher.get_graphlet(id2classes, id2degrees)
+            data = matcher.get_graphlet(id2classes, id2degrees, add_new=False)
             if data[0] is None:
                 continue
 
@@ -327,8 +327,15 @@ class GraphletMatcher():
         except KeyError:
             if add_new is False:
                 return None, None, None, None
-            role_ids = [self.rid_offset+rid
-                        for rid in self.template[degrees]]
+            class_rid_offset = [self.rid_offset]
+            for i in range(1, len(classes)):
+                if classes[i] != classes[i-1]:
+                    class_rid_offset.append(class_rid_offset[i-1]+1)
+                else:
+                    class_rid_offset.append(class_rid_offset[i-1])
+            role_ids = [offset+rid
+                        for offset, rid
+                        in zip(class_rid_offset, self.template[degrees])]
             gid = len(self.graphlets)
             self.graphlets[key] = (gid, role_ids)
             self.rid_offset = role_ids[-1]+1
