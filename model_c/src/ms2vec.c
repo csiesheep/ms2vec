@@ -146,6 +146,10 @@ void *TrainModelThread(void *id) {
   int iter=0;
   FILE *fi = NULL;
   float weight = 1.0;
+  FILE *fo, *fo2, *fo3;
+  char output_file2[MAX_STRING];
+
+  printf("start tid:%d\n", id);
 
   for (iter=0; iter<iteration; iter++)
   {
@@ -468,8 +472,53 @@ void *TrainModelThread(void *id) {
         }
       }
     }
+
+    if (id == 0) {
+      sprintf(output_file2, "%s.%d", output_file, iter);
+      fo = fopen(output_file2, "wb");
+      if (fo == NULL) {
+        fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
+        exit(1);
+      }
+      printf("\nsave node vectors\n");
+      fprintf(fo, "%lld %lld\n", node_count, layer1_size);
+      for (a = 0; a < node_count; a++) {
+        fprintf(fo, "%ld ", a);
+        if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
+        else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
+        fprintf(fo, "\n");
+      }
+      fclose(fo);
+
+//    fo2 = fopen(role_output_file, "wb");
+//    if (fo2 == NULL) {
+//      fprintf(stderr, "Cannot open %s: permission denied\n", role_output_file);
+//      exit(1);
+//    }
+//    printf("save role vectors %s\n", role_output_file);
+//    fprintf(fo2, "%lld %lld\n", role_count, layer1_size);
+//    for (a = 0; a < role_count; a++) {
+//      fprintf(fo2, "%ld ", a);
+//      for (b = 0; b < layer1_size; b++) fprintf(fo2, "%lf ", synr[a * layer1_size + b]);
+//      fprintf(fo2, "\n");
+//    }
+//    fclose(fo2);
+//    fo3 = fopen(graphlet_output_file, "wb");
+//    if (fo3 == NULL) {
+//      fprintf(stderr, "Cannot open %s: permission denied\n", role_output_file);
+//      exit(1);
+//    }
+//    printf("save graphlet vectors %s\n", graphlet_output_file);
+//    fprintf(fo3, "%lld %lld\n", graphlet_count, layer1_size);
+//    for (a = 0; a < graphlet_count; a++) {
+//      fprintf(fo3, "%ld ", a);
+//      for (b = 0; b < layer1_size; b++) fprintf(fo3, "%lf ", syng[a * layer1_size + b]);
+//      fprintf(fo3, "\n");
+//    }
+//    fclose(fo3);
+    }
   }
-//printf("finish tid:%d\n", id);
+  printf("finish tid:%d\n", id);
   fclose(fi);
   free(ex);
   free(exr);
@@ -518,6 +567,7 @@ void TrainModel() {
   InitNet();
   InitUnigramTable();
 
+  printf("Starting learning\n");
   start = clock();
   for (a = 0; a < num_threads; a++) pthread_create(&pt[a], NULL, TrainModelThread, (void *)a);
   for (a = 0; a < num_threads; a++) pthread_join(pt[a], NULL);
