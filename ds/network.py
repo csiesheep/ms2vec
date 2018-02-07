@@ -257,6 +257,8 @@ class HIN(object):
         return sorted(self.node2id.values())
 
     def a_random_walk(self, node, length):
+        if node not in self.graph:
+            return []
         if not hasattr(self, 'node_choices'):
             self.create_node_choices()
 
@@ -306,7 +308,7 @@ class HIN(object):
             n = 0
             for node in self.graph:
                 n += 1
-                if n % 1000 == 0:
+                if n % 10000 == 0:
                     print n
                 walk = self.a_random_walk(node, length)
                 if len(walk) != 1:
