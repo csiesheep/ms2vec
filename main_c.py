@@ -69,10 +69,10 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
                 for id_ in walk:
                     id2freq[id_] += 1
 
-        if to_freq:
+        if to_freq and options.freq_fname is not None:
             print 'dump id2freq', options.freq_fname
             cPickle.dump(id2freq, open(options.freq_fname, 'w'))
-        if to_matcher:
+        if to_matcher and options.matcher_fname is not None:
             print 'dump matcher', options.matcher_fname
             cPickle.dump(matcher, open(options.matcher_fname, 'w'))
 

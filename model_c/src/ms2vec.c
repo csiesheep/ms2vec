@@ -253,6 +253,11 @@ void *TrainModelThread(void *id) {
      
           ly = y * layer1_size;
 
+          for (c = 0; c < layer1_size; c++)
+          {
+            xy[c] = syn0[c + lx] * syn0[c + ly];
+          }
+
           //----------------------------
           //Training of a data for roles
           //----------------------------
@@ -264,7 +269,6 @@ void *TrainModelThread(void *id) {
               ex[c] = 0;
               exr[c] = 0;
               eyr[c] = 0;
-              xy[c] = syn0[c + lx] * syn0[c + ly];
             }
             
             //Predicting
