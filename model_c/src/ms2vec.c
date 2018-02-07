@@ -149,11 +149,14 @@ void *TrainModelThread(void *id) {
   FILE *fo, *fo2, *fo3;
   char output_file2[MAX_STRING];
   int ith;
+  int per_iter_count = total_data_count / iteration / num_threads;
 
-  printf("start tid:%d\n", id);
+  printf("start tid:%d %d\n", id, per_iter_count);
 
   for (iter=0; iter<iteration; iter++)
   {
+    data_count = 0;
+    last_data_count = 0;
     fi = fopen(train_file, "rb");
     if (fi == NULL) {
       fprintf(stderr, "no such file or directory: %s", train_file);
@@ -217,28 +220,12 @@ void *TrainModelThread(void *id) {
       }
 //    printf("\n");
       if (feof(fi)) break;
-      if (data_count >= total_data_count / num_threads) break;
+      if (data_count >= per_iter_count) {
+//      printf("   tid:%d, %d, %d, %d\n", id, iter, data_count, per_iter_count);
+        break;
+      }
       data_count++;
 
-      if (id == 0 && data_count % (total_data_count / iteration / num_threads) == 0) {
-        ith = data_count / (total_data_count / iteration / num_threads);
-//      printf("%d %d\n", ith, (total_data_count / iteration / num_threads));
-        sprintf(output_file2, "%s.%d", output_file, iter);
-        fo = fopen(output_file2, "wb");
-        if (fo == NULL) {
-          fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
-          exit(1);
-        }
-        printf("\nsave node vectors\n");
-        fprintf(fo, "%lld %lld\n", node_count, layer1_size);
-        for (a = 0; a < node_count; a++) {
-          fprintf(fo, "%ld ", a);
-          if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
-          else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
-          fprintf(fo, "\n");
-        }
-        fclose(fo);
-      }
 
       lyr = yr * layer1_size;
       lg = gid * layer1_size;
@@ -492,6 +479,25 @@ void *TrainModelThread(void *id) {
           }
         }
       }
+    }
+
+    if (id == 0) {
+//    printf("%d %d\n", ith, (total_data_count / iteration / num_threads));
+      sprintf(output_file2, "%s.%d", output_file, iter);
+      fo = fopen(output_file2, "wb");
+      if (fo == NULL) {
+        fprintf(stderr, "Cannot open %s: permission denied\n", output_file);
+        exit(1);
+      }
+      printf("\nsave node vectors\n");
+      fprintf(fo, "%lld %lld\n", node_count, layer1_size);
+      for (a = 0; a < node_count; a++) {
+        fprintf(fo, "%ld ", a);
+        if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
+        else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
+        fprintf(fo, "\n");
+      }
+      fclose(fo);
     }
 
   }
