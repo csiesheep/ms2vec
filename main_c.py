@@ -30,6 +30,10 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
 
     print 'Load a HIN...'
     g = loader.load_a_HIN(graph_fname)
+    print len(g.graph)
+    for c in g.class_nodes:
+        print c, len(g.class_nodes[c])
+    print g.edge_class2id
     g.create_node_choices()
 
     id2classes = {}
@@ -72,6 +76,7 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
             print 'dump matcher', options.matcher_fname
             cPickle.dump(matcher, open(options.matcher_fname, 'w'))
 
+    print matcher.graphlets
     print 'graphlet:', len(matcher.graphlets)
     print 'roles:', matcher.rid_offset
     tmp_freq_fname = '/tmp/ms_freq.txt'
@@ -113,9 +118,9 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
                  "-threads %d -sigmoid_reg %d -iteration %d -equal %d"
                  "" % (model,
                        options.dim,
-                       len(g.graph),
-                        matcher.rid_offset,
-                        len(matcher.graphlets),
+                       max(g.graph),
+                       matcher.rid_offset,
+                       len(matcher.graphlets),
                        options.role_ratio,
                        tmp_data_fname,
                        tmp_freq_fname,
