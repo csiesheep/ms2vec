@@ -118,7 +118,7 @@ def main(graph_fname, node_vec_fname, role_vec_fname, graphlet_vec_fname, option
                  "-threads %d -sigmoid_reg %d -iteration %d -equal %d"
                  "" % (model,
                        options.dim,
-                       max(g.graph),
+                       max(max(g.graph), len(g.graph)),
                        matcher.rid_offset,
                        len(matcher.graphlets),
                        options.role_ratio,
